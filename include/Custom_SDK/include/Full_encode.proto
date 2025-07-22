@@ -1,0 +1,95 @@
+// A very simple protocol definition, consisting of only
+// one message.
+
+syntax = "proto2";
+
+message ArmCommand {
+    required uint32 mode = 1;
+    required float q = 2;
+    required float dq = 3;
+    required float tau = 4;
+    required float kp = 5;
+    required float kd = 6;
+}
+
+message LegCommand {
+    required uint32 mode = 1;
+    required float q = 2;
+    required float dq = 3;
+    required float tau = 4;
+    required float kp = 5;
+    required float kd = 6;
+}
+
+message LowLevelCmd {
+    required ArmCommand arm_motor1 = 1;
+    required ArmCommand arm_motor2 = 2;
+    required ArmCommand arm_motor3 = 3;
+    required ArmCommand arm_motor4 = 4;
+    required ArmCommand arm_motor5 = 5;
+    required ArmCommand arm_motor6 = 6;
+    required ArmCommand arm_motor7 = 7;
+    required ArmCommand arm_motor8 = 8;
+    required LegCommand leg_motor1 = 9;
+    required LegCommand leg_motor2 = 10;
+    required LegCommand leg_motor3 = 11;
+    required LegCommand leg_motor4 = 12;
+    required LegCommand leg_motor5 = 13;
+    required LegCommand leg_motor6 = 14;
+    required LegCommand leg_motor7 = 15;
+    required LegCommand leg_motor8 = 16;
+    required LegCommand leg_motor9 = 17;
+    required LegCommand leg_motor10 = 18;
+    required bool Calibration = 19;
+}
+
+message ArmState {
+    required uint32 mode = 1;
+    required float q = 2;
+    required float dq = 3;
+    required float tauEst = 4;
+}
+
+message LegState {
+    required uint32 mode = 1;
+    required float q = 2;
+    required float dq = 3;
+    required float tauEst = 4;
+    required float temperature = 5;
+    required float error = 6;
+}
+
+message IMUState {
+    required float GyroX = 1;
+    required float GyroY = 2;
+    required float GyroZ = 3;
+    required float AccX = 4;
+    required float AccY = 5;
+    required float AccZ = 6;
+}
+
+message LowLevelState {
+    required ArmState arm_motor1 = 1;
+    required ArmState arm_motor2 = 2;
+    required ArmState arm_motor3 = 3;
+    required ArmState arm_motor4 = 4;
+    required ArmState arm_motor5 = 5;
+    required ArmState arm_motor6 = 6;
+    required ArmState arm_motor7 = 7;
+    required ArmState arm_motor8 = 8;
+    required LegState leg_motor1 = 9;
+    required LegState leg_motor2 = 10;
+    required LegState leg_motor3 = 11;
+    required LegState leg_motor4 = 12;
+    required LegState leg_motor5 = 13;
+    required LegState leg_motor6 = 14;
+    required LegState leg_motor7 = 15;
+    required LegState leg_motor8 = 16;
+    required LegState leg_motor9 = 17;
+    required LegState leg_motor10 = 18;
+    required IMUState imu_1 = 19;
+    required uint32 low_level_error_code = 20;
+}
+
+
+

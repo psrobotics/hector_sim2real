@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrc.a CMakeFiles/src.dir/src/interface/IOSDK.cpp.o CMakeFiles/src.dir/src/interface/Joystick.cpp.o CMakeFiles/src.dir/src/interface/KeyBoard.cpp.o CMakeFiles/src.dir/src/interface/WirelessHandle.cpp.o
+/usr/bin/ranlib libsrc.a
