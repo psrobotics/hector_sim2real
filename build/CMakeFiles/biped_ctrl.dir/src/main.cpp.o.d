@@ -636,4 +636,7 @@ CMakeFiles/biped_ctrl.dir/src/main.cpp.o: \
  /usr/include/x86_64-linux-gnu/bits/in.h /usr/include/arpa/inet.h \
  /home/ps/Documents/hector_sim2real/src/../include/interface/../Custom_SDK/include/pb_encode.h \
  /home/ps/Documents/hector_sim2real/src/../include/interface/../Custom_SDK/include/pb.h \
- /home/ps/Documents/hector_sim2real/src/../include/interface/../Custom_SDK/include/pb_decode.h
+ /home/ps/Documents/hector_sim2real/src/../include/interface/../Custom_SDK/include/pb_decode.h \
+ /home/ps/Documents/hector_sim2real/src/../include/Custom_SDK/include/low_cmd_t.hpp \
+ /usr/local/include/lcm/lcm_coretypes.h \
+ /home/ps/Documents/hector_sim2real/src/../include/Custom_SDK/include/low_state_t.hpp

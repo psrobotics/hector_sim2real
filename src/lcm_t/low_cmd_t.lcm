@@ -1,0 +1,14 @@
+package exlcm;
+
+struct low_cmd_t
+{
+    int64_t  timestamp;
+
+    float q[18];
+    float dq[18];
+    float tau[18];
+    float kp[18];
+    float kd[18];
+    boolean enable[18];
+    boolean calibrate[18];
+}

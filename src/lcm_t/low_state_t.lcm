@@ -1,0 +1,18 @@
+package exlcm;
+
+struct low_state_t
+{
+    int64_t  timestamp;
+
+    float q[18];
+    float dq[18];
+    float ddq[18];
+    float tau_est[18];
+    float temperature[18];
+    float error[18];
+    
+    float quaternion[4];
+    float gyroscope[3];
+    float accelerometer[3];
+    float rpy[3];
+}
