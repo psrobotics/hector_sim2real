@@ -216,38 +216,39 @@ if __name__ == "__main__":
     
     # Init the hw wrapper
     default_q = np.array([0.6, 0.12, 0.9, -0.6, -0.12, -0.9])
-    onnx_path = "onnx/bai_v2_policy.onnx"
+    onnx_path = "onnx/hector_policy.onnx"
     dt = 0.02
     act_scale = 0.5
     kp = 5.0
     kd = 0.1
-    bpd_bai = hw_wrapper(default_q, onnx_path, dt, act_scale, kp, kd)
+    
+    hector_hw = hw_wrapper(default_q, onnx_path, dt, act_scale, kp, kd)
     
     # Add periodic tasks
-    # lcm receive, running 250hz
-    lcm_recv_loop = loop_func(name="lcm_recv", period=0.002, cb=bpd_bai.lcm_loop)
-    # Motor cmd loop, running 500hz
-    mot_cmd_loop = loop_func(name="mot_cmd", period=0.002, cb=bpd_bai.send_mot_cmd)
+    # Low_state loop, running 500hz
+    low_state_loop = loop_func(name="low_state", period=0.002, cb=hector_hw.lcm_loop)
+    # Low_cmd loop, running 500hz
+    low_cmd_loop = loop_func(name="low_cmd", period=0.002, cb=hector_hw.send_low_cmd)
     # Main control loop, 50hz
-    main_ctrl_loop = loop_func(name="main_ctrl", period=0.02, cb=bpd_bai.get_ctrl)
+    main_ctrl_loop = loop_func(name="main_ctrl", period=0.02, cb=hector_hw.get_ctrl)
     
 
     try:
         main_ctrl_loop.start()
-        lcm_recv_loop.start()
-        mot_cmd_loop.start()
+        low_state_loop.start()
+        low_cmd_loop.start()
         print("Running all control loops. Press Ctrl+C to exit early.")
         
         # Init mujoco visualizer for debug
-        mjcf_path = "xmls/bai_v2.xml"
+        mjcf_path = "xmls/hector_v2.xml"
         model = mujoco.MjModel.from_xml_path(mjcf_path)
         data = mujoco.MjData(model)
         
         with mujoco.viewer.launch_passive(model, data) as viewer:
             while viewer.is_running():
                 # Get the latest joint state from the hardware wrapper
-                hw_q = bpd_bai.joint_state.q
-                hw_rpy = bpd_bai.imu.rpy
+                hw_q = hector_hw.joint_state.q
+                hw_rpy = hector_hw.imu.rpy
                 
                 rot: Rotation = Rotation.from_euler('yxz', hw_rpy, degrees=False)
                 qx, qy, qz, qw = rot.as_quat()
@@ -265,8 +266,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\nCtrl+C received.")
     finally:
-        mot_cmd_loop.shutdown()
-        lcm_recv_loop.shutdown()
+        low_cmd_loop.shutdown()
+        low_state_loop.shutdown()
         main_ctrl_loop.shutdown()
         
     print("\nExample script finished.")
