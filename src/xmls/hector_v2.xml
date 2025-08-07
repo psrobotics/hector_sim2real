@@ -77,7 +77,7 @@
     </default>
 
     <asset>
-        <material name="metal" rgba=".3 .3 .3 1" />
+        <material name="metal" rgba=".95 .95 .95 1" />
 
         <mesh name="torso" file="torso.stl" />
         <mesh name="l_hip1" file="l_hip1.stl" />

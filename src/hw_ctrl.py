@@ -21,6 +21,9 @@ import mujoco
 import mujoco.viewer
 import time
 
+# IMU utils
+from imumaster import Orientation
+
 _HERE = epath.Path(__file__).parent
 _ONNX_DIR = _HERE / "onnx"
 
@@ -106,15 +109,15 @@ class hw_wrapper:
         # Global command
         self.command = np.array([0.3, 0.0, 0.0])
         
+        # External IMU filter
+        ekf_imu = Orientation(sample=2000, frame="ENU", method="EKF")
+        
     # Receive low-state from C++ handle, all ik has been solved in the C++ script
     def low_state_handle(self, channel, data):
         msg = low_state_t.decode(data)
         self.low_state_msg = msg
-        print("Received message on channel \"%s\"" % channel)
-        #print("   rpy = %s" % str(msg.rpy))
-        #print("   gyro = %s" % str(msg.gyro))
-        #print("   acc = %s" % str(msg.acc))
-        #print("\n")
+        #print("Received message on channel \"%s\"" % channel)
+        
         
     def lcm_loop(self):
         # Non-blocking reading all lcm subs
@@ -175,8 +178,7 @@ class hw_wrapper:
         
         # Get target joint
         q_tar = act_pred*self._act_scale + self._default_q
-        
-        print(q_tar)
+        #print(q_tar)
       
         # Set initial zero position, debug
         self.joint_act.q = np.zeros(self._nu)
@@ -187,9 +189,15 @@ class hw_wrapper:
     def update_state(self):
         # Update state variable from received low-level states msg to internal buffer
         # Copy over imu states, history, cehck hector's rad/axis limit
-        self.imu.rpy = np.array(self.low_state_msg.rpy) # for hector, it's in rad
+        #self.imu.rpy = np.array(self.low_state_msg.rpy) # for hector, it's in rad
+        # Onboard rpy estimation is bad, we use external ekf
         self.imu.gyro = np.array(self.low_state_msg.gyroscope)
         self.imu.acc = np.array(self.low_state_msg.accelerometer) 
+        
+        q_est = self.ekf_imu.EKF(self.imu.acc, self.imu.gyro)
+        rpy_est = self.ekf_imu.eulerangle(q_est)
+        print(rpy_est)
+        
         # Low_state to joint state
         self.joint_state.q = np.array(self.low_state_msg.q)
         self.joint_state.dq = np.array(self.low_state_msg.dq)
@@ -205,8 +213,8 @@ class hw_wrapper:
         self.low_cmd_msg.kp = self.joint_act.kp
         self.low_cmd_msg.kd = self.joint_act.kd
         
-        self.low_cmd_msg.enable[:] = self.joint_act.enable
-        self.low_cmd_msg.calibrate[:] = self.joint_act.calibrate
+        self.low_cmd_msg.enable[:] = self.joint_act.enable * np.ones(self._nu)
+        self.low_cmd_msg.calibrate[:] = self.joint_act.calibrate * np.ones(self._nu)
         # TODO: Joint limit safety check
         
         # Send to lcm
@@ -229,9 +237,9 @@ if __name__ == "__main__":
     hector_hw = hw_wrapper(default_q, onnx_path, dt, act_scale, kp, kd)
     
     # Add periodic tasks
-    # Low_state loop, running 500hz
+    # Low_state loop, running 2000hz
     low_state_loop = loop_func(name="low_state", period=0.0005, cb=hector_hw.lcm_loop)
-    # Low_cmd loop, running 500hz
+    # Low_cmd loop, running 2000hz
     low_cmd_loop = loop_func(name="low_cmd", period=0.0005, cb=hector_hw.send_low_cmd)
     # Main control loop, 50hz
     main_ctrl_loop = loop_func(name="main_ctrl", period=0.02, cb=hector_hw.get_ctrl)
@@ -240,7 +248,7 @@ if __name__ == "__main__":
     try:
         main_ctrl_loop.start()
         low_state_loop.start()
-        low_cmd_loop.start()
+        #low_cmd_loop.start()
         print("Running all control loops. Press Ctrl+C to exit early.")
         
         # Init mujoco visualizer for debug
@@ -254,14 +262,21 @@ if __name__ == "__main__":
                 hw_q = hector_hw.joint_state.q
                 hw_rpy = hector_hw.imu.rpy
                 
+                print(hector_hw.imu.acc[0])
+                print(hector_hw.imu.acc[1])
+                print(hector_hw.imu.acc[2])
+                print(" -------------------- ")
+                
                 rot: Rotation = Rotation.from_euler('zyx', hw_rpy, degrees=False)
                 qx, qy, qz, qw = rot.as_quat()
                 quat_wxyz = (qw, qx, qy, qz)
                 
                 data.qpos[0:3] = np.array([0.0, 0.0, 0.0])
                 data.qpos[3:7] = np.array([1.0, 0.0, 0.0, 0.0])
-                data.qpos[7:] = hw_q
-                mujoco.mj_step(model, data)
+                data.qpos[7:7+18] = hw_q
+                data.qvel[:] = 0
+                
+                mujoco.mj_fwdPosition(model, data)
                 viewer.sync()
                 
                 # Sleep to not overwhelm the CPU

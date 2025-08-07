@@ -171,37 +171,34 @@ void custom_wrapper::ctrl_loop()
 {
     mujoco_cmd->Calibration = 0;
 
-    // Legs
-    for (int i = 0; i < 10; i++)
-    {
-        mujoco_cmd->motorCmd[i].q = 0;
-        mujoco_cmd->motorCmd[i].dq = 0;
-        mujoco_cmd->motorCmd[i].Kp = 0.0;
-        mujoco_cmd->motorCmd[i].Kd = 0.0;
-        mujoco_cmd->motorCmd[i].tau = 0;
-    }
-    // Just arms stat
-    for (int i = 10; i < 18; i++)
-    {
-        mujoco_cmd->motorCmd[i].q = 0;
-        mujoco_cmd->motorCmd[i].dq = 0;
-        mujoco_cmd->motorCmd[i].Kp = 0.0;
-        mujoco_cmd->motorCmd[i].Kd = 0.0;
-        mujoco_cmd->motorCmd[i].tau = 0;
-    }
+    // Test, Write a pd ctr with initial pos
+    double init_q[18] = {0.00, 0.00, 0.785, -1.57, 0.785,
+                          0.00, 0.00, 0.785, -1.57, 0.785,
+                          0.00, 0.785, 0.000,  -1.57,
+                          0.00, 0.785, 0.000,  -1.57};
+    double kp_leg = 5.0;
+    double kd_leg = 0.4;
+    double kp_arm = 3.0;
+    double kd_arm = 0.3;
 
-    // Hip r
-    mujoco_cmd->motorCmd[2].q = 0.0;
-    mujoco_cmd->motorCmd[2].dq = 0;
-    mujoco_cmd->motorCmd[2].Kp = 0.0;//3.5;
-    mujoco_cmd->motorCmd[2].Kd = 0.0;//0.1;
-    mujoco_cmd->motorCmd[2].tau = 0;
-    // Hip l
-    mujoco_cmd->motorCmd[7].q = 0.0;
-    mujoco_cmd->motorCmd[7].dq = 0;
-    mujoco_cmd->motorCmd[7].Kp = 0.0;//3.5;
-    mujoco_cmd->motorCmd[7].Kd = 0.0;//0.1;
-    mujoco_cmd->motorCmd[7].tau = 0;
+    // Assign values for leg
+    for(int i=0; i<10; i++)
+    {
+        mujoco_cmd->motorCmd[i].q = init_q[i];
+        mujoco_cmd->motorCmd[i].dq = 0.0;
+        mujoco_cmd->motorCmd[i].Kp = kp_leg;
+        mujoco_cmd->motorCmd[i].Kd = kd_leg;
+        mujoco_cmd->motorCmd[i].tau = 0.0;  
+    }
+    // Assign valuse for arm
+    for(int i=10; i<18; i++)
+    {
+        mujoco_cmd->motorCmd[i].q = init_q[i];
+        mujoco_cmd->motorCmd[i].dq = 0.0;
+        mujoco_cmd->motorCmd[i].Kp = kp_arm;
+        mujoco_cmd->motorCmd[i].Kd = kd_arm;
+        mujoco_cmd->motorCmd[i].tau = 0.0;  
+    }
 
     std::cout<<"Main control loop ctrl"<<std::endl;
 
@@ -381,7 +378,7 @@ int main()
     set_process_scheduler();
 
     double ctrl_dt = 0.02; //50hz
-    double lowlevel_dt = 0.0005; //1000hz
+    double lowlevel_dt = 0.0005; //2000hz
 
     int robot_id = 4;     // AlienGo=1, A1=2, Biped=4
     int cmd_panel_id = 2; // Wireless=1, keyboard=2
