@@ -76,14 +76,14 @@ class hw_wrapper:
         self.joint_offset = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
         # Init motor kp
-        self.joint_act.kp = 0.7
-        self.joint_act.kd = 0.08
+        self.joint_act.kp = 0.0
+        self.joint_act.kd = 0.0
         
         # Policy onnx params
         self._output_names = ["continuous_actions"]
-        self._policy = rt.InferenceSession(
-            policy_path, providers=["CPUExecutionProvider"]
-        )
+        #self._policy = rt.InferenceSession(
+        #    policy_path, providers=["CPUExecutionProvider"]
+        #)
         print("ONNX policy init done")
 
         # Local obs buffer
@@ -110,7 +110,7 @@ class hw_wrapper:
     def low_state_handle(self, channel, data):
         msg = low_state_t.decode(data)
         self.low_state_msg = msg
-        #print("Received message on channel \"%s\"" % channel)
+        print("Received message on channel \"%s\"" % channel)
         #print("   rpy = %s" % str(msg.rpy))
         #print("   gyro = %s" % str(msg.gyro))
         #print("   acc = %s" % str(msg.acc))
@@ -167,7 +167,8 @@ class hw_wrapper:
         # Get obs
         obs = self.get_obs()
         onnx_input = {"obs": obs.reshape(1, -1)}
-        act_pred = self._policy.run(self._output_names, onnx_input)[0][0]
+        #act_pred = self._policy.run(self._output_names, onnx_input)[0][0]
+        act_pred = np.zeros(self._nu, dtype=np.float32)
 
         # Update action buffer
         self._last_action = act_pred.copy()
@@ -186,7 +187,7 @@ class hw_wrapper:
     def update_state(self):
         # Update state variable from received low-level states msg to internal buffer
         # Copy over imu states, history, cehck hector's rad/axis limit
-        self.imu.rpy = np.array(self.low_state_msg.rpy) / 180.0* np.pi
+        self.imu.rpy = np.array(self.low_state_msg.rpy) # for hector, it's in rad
         self.imu.gyro = np.array(self.low_state_msg.gyroscope)
         self.imu.acc = np.array(self.low_state_msg.accelerometer) 
         # Low_state to joint state
@@ -215,7 +216,10 @@ class hw_wrapper:
 if __name__ == "__main__":
     
     # Init the hw wrapper
-    default_q = np.array([0.6, 0.12, 0.9, -0.6, -0.12, -0.9])
+    default_q = np.array([0.00, 0.00, 0.785, -1.57, 0.785,
+                          0.00, 0.00, 0.785, -1.57, 0.785,
+                          0.00, 0.785, 0.000,  -1.57,
+                          0.00, 0.785, 0.000,  -1.57])
     onnx_path = "onnx/hector_policy.onnx"
     dt = 0.02
     act_scale = 0.5
@@ -226,9 +230,9 @@ if __name__ == "__main__":
     
     # Add periodic tasks
     # Low_state loop, running 500hz
-    low_state_loop = loop_func(name="low_state", period=0.002, cb=hector_hw.lcm_loop)
+    low_state_loop = loop_func(name="low_state", period=0.0005, cb=hector_hw.lcm_loop)
     # Low_cmd loop, running 500hz
-    low_cmd_loop = loop_func(name="low_cmd", period=0.002, cb=hector_hw.send_low_cmd)
+    low_cmd_loop = loop_func(name="low_cmd", period=0.0005, cb=hector_hw.send_low_cmd)
     # Main control loop, 50hz
     main_ctrl_loop = loop_func(name="main_ctrl", period=0.02, cb=hector_hw.get_ctrl)
     
@@ -250,12 +254,12 @@ if __name__ == "__main__":
                 hw_q = hector_hw.joint_state.q
                 hw_rpy = hector_hw.imu.rpy
                 
-                rot: Rotation = Rotation.from_euler('yxz', hw_rpy, degrees=False)
+                rot: Rotation = Rotation.from_euler('zyx', hw_rpy, degrees=False)
                 qx, qy, qz, qw = rot.as_quat()
                 quat_wxyz = (qw, qx, qy, qz)
                 
                 data.qpos[0:3] = np.array([0.0, 0.0, 0.0])
-                data.qpos[3:7] = quat_wxyz #np.array([1.0, 0.0, 0.0, 0.0])
+                data.qpos[3:7] = np.array([1.0, 0.0, 0.0, 0.0])
                 data.qpos[7:] = hw_q
                 mujoco.mj_step(model, data)
                 viewer.sync()
