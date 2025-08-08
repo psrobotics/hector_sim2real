@@ -8,17 +8,18 @@
 
 using namespace UNITREE_LEGGED_SDK;
 static int count;
-IOSDK::IOSDK(LeggedType robot, int cmd_panel_id):
-_control(robot),
-_udp(LOWLEVEL), customcommunication(8070)
+IOSDK::IOSDK(LeggedType robot, int cmd_panel_id) : _control(robot),
+                                                   _udp(LOWLEVEL), customcommunication(8070)
 {
     std::cout << "The control interface for real robot" << std::endl;
     _udp.InitCmdData(_lowCmd);
-    if(cmd_panel_id == 1){
-    cmdPanel = new WirelessHandle();
+    if (cmd_panel_id == 1)
+    {
+        cmdPanel = new WirelessHandle();
     }
-    else if(cmd_panel_id == 2){
-    cmdPanel = new KeyBoard();
+    else if (cmd_panel_id == 2)
+    {
+        cmdPanel = new KeyBoard();
     }
     // tau_command.open("Tau_at_IOSDK.txt");
     // kp_command.open("kp_at_IOSDK.txt");
@@ -30,15 +31,16 @@ _udp(LOWLEVEL), customcommunication(8070)
 //     // Receive message function goes here
 // }
 
-void IOSDK::sendUDP(const LowlevelCmd *cmd){
+void IOSDK::sendUDP(const LowlevelCmd *cmd)
+{
     // std::cout << "Running Custom Communication" << std::endl;
     const auto start = std::chrono::high_resolution_clock::now();
-    
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(start-previoustime);
+
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(start - previoustime);
     // std::cout << "Time taken bw message is " << duration.count() << "micro s\n";
 
     previoustime = start;
-    
+
     message_to_encode = LowLevelCmd_init_zero;
 
     message_to_encode.arm_motor1.mode = 0;
@@ -116,8 +118,6 @@ void IOSDK::sendUDP(const LowlevelCmd *cmd){
     message_to_encode.leg_motor10.kd = cmd->motorCmd[9].Kd;
     message_to_encode.leg_motor10.tau = cmd->motorCmd[9].tau;
 
-
-
     message_to_encode.arm_motor1.q = cmd->motorCmd[10].q;
     message_to_encode.arm_motor1.dq = cmd->motorCmd[10].dq;
     message_to_encode.arm_motor1.kp = cmd->motorCmd[10].Kp;
@@ -172,9 +172,7 @@ void IOSDK::sendUDP(const LowlevelCmd *cmd){
 
     message_to_encode.Calibration = cmd->Calibration;
 
-
     message_to_encode.arm_motor1.mode = 1.0;
-  
 
     auto encoded_message = customcommunication.encodeLowLevelCmd(message_to_encode);
 
@@ -182,16 +180,17 @@ void IOSDK::sendUDP(const LowlevelCmd *cmd){
     // std::cout << "Sent" << std::endl;
 }
 
-void IOSDK::ReceiveUDP(LowlevelState *state){
+void IOSDK::ReceiveUDP(LowlevelState *state)
+{
     count++;
     // std::cout << "Custom Receive" << std::endl;
     state->userCmd = cmdPanel->getUserCmd();
     state->userValue = cmdPanel->getUserValue();
     const auto _start_recv = std::chrono::high_resolution_clock::now();
-    
+
     // // Receive UDP message and decode it here
     auto receivedBuffer = customcommunication.receiveUdpMessage();
-                            
+
     LowLevelState decodedState = customcommunication.decodeLowLevelState(receivedBuffer);
 
     state->motorState[0].q = decodedState.leg_motor1.q;
@@ -203,7 +202,7 @@ void IOSDK::ReceiveUDP(LowlevelState *state){
     // std::cout << "Leg1 motor q is " << decodedState.leg_motor1.q << std::endl;
 
     state->motorState[1].q = decodedState.leg_motor2.q;
-    state->motorState[1].dq= decodedState.leg_motor2.dq;
+    state->motorState[1].dq = decodedState.leg_motor2.dq;
     state->motorState[1].tauEst = decodedState.leg_motor2.tauEst;
     state->motorState[1].temperature = decodedState.leg_motor2.temperature;
     state->motorState[1].error = decodedState.leg_motor2.error;
@@ -211,7 +210,7 @@ void IOSDK::ReceiveUDP(LowlevelState *state){
     // std::cout << "Leg2 motor q is " << decodedState.leg_motor2.q << std::endl;
 
     state->motorState[2].q = decodedState.leg_motor3.q;
-    state->motorState[2].dq= decodedState.leg_motor3.dq;
+    state->motorState[2].dq = decodedState.leg_motor3.dq;
     state->motorState[2].tauEst = decodedState.leg_motor3.tauEst;
     state->motorState[2].temperature = decodedState.leg_motor3.temperature;
     state->motorState[2].error = decodedState.leg_motor3.error;
@@ -226,7 +225,7 @@ void IOSDK::ReceiveUDP(LowlevelState *state){
     // std::cout << "Leg3 motor q is " << decodedState.leg_motor4.q << std::endl;
 
     state->motorState[4].q = decodedState.leg_motor5.q;
-    state->motorState[4].dq= decodedState.leg_motor5.dq;
+    state->motorState[4].dq = decodedState.leg_motor5.dq;
     state->motorState[4].tauEst = decodedState.leg_motor5.tauEst;
     state->motorState[4].temperature = decodedState.leg_motor5.temperature;
     state->motorState[4].error = decodedState.leg_motor5.error;
@@ -234,7 +233,7 @@ void IOSDK::ReceiveUDP(LowlevelState *state){
     // std::cout << "\n\n";
 
     state->motorState[5].q = decodedState.leg_motor6.q;
-    state->motorState[5].dq= decodedState.leg_motor6.dq;
+    state->motorState[5].dq = decodedState.leg_motor6.dq;
     state->motorState[5].tauEst = decodedState.leg_motor6.tauEst;
     state->motorState[5].temperature = decodedState.leg_motor6.temperature;
     state->motorState[5].error = decodedState.leg_motor6.error;
@@ -242,80 +241,79 @@ void IOSDK::ReceiveUDP(LowlevelState *state){
     // std::cout << "Leg6 motor q is " << decodedState.leg_motor6.q << std::endl;
 
     state->motorState[6].q = decodedState.leg_motor7.q;
-    state->motorState[6].dq= decodedState.leg_motor7.dq;
+    state->motorState[6].dq = decodedState.leg_motor7.dq;
     state->motorState[6].tauEst = decodedState.leg_motor7.tauEst;
     state->motorState[6].temperature = decodedState.leg_motor7.temperature;
     state->motorState[6].error = decodedState.leg_motor7.error;
     // std::cout << "Leg7 motor q is " << decodedState.leg_motor7.q << std::endl;
 
     state->motorState[7].q = decodedState.leg_motor8.q;
-    state->motorState[7].dq= decodedState.leg_motor8.dq;
+    state->motorState[7].dq = decodedState.leg_motor8.dq;
     state->motorState[7].tauEst = decodedState.leg_motor8.tauEst;
     state->motorState[7].temperature = decodedState.leg_motor8.temperature;
     state->motorState[7].error = decodedState.leg_motor8.error;
     // std::cout << "Leg8 motor q is " << decodedState.leg_motor8.q<< std::endl;;
 
     state->motorState[8].q = decodedState.leg_motor9.q;
-    state->motorState[8].dq= decodedState.leg_motor9.dq;
+    state->motorState[8].dq = decodedState.leg_motor9.dq;
     state->motorState[8].tauEst = decodedState.leg_motor9.tauEst;
     state->motorState[8].temperature = decodedState.leg_motor9.temperature;
     state->motorState[8].error = decodedState.leg_motor9.error;
     // std::cout << "Leg9 motor q is " << decodedState.leg_motor9.q << std::endl;;
 
     state->motorState[9].q = decodedState.leg_motor10.q;
-    state->motorState[9].dq= decodedState.leg_motor10.dq;
+    state->motorState[9].dq = decodedState.leg_motor10.dq;
     state->motorState[9].tauEst = decodedState.leg_motor10.tauEst;
     state->motorState[9].temperature = decodedState.leg_motor10.temperature;
     state->motorState[9].error = decodedState.leg_motor10.error;
     // std::cout << "Leg10 motor q is " << decodedState.leg_motor10.q << std::endl;;
 
     // if(count % 10 ==0){
-        // for (int m=0; m < 10; m++){
-        //     if(m==5){
-        //         std::cout<< "\n\n";}
-            
-        //     std::cout << "motor # " << m << "q is =  " << state->motorState[m].q <<std::endl;
-        // }
+    // for (int m=0; m < 10; m++){
+    //     if(m==5){
+    //         std::cout<< "\n\n";}
+
+    //     std::cout << "motor # " << m << "q is =  " << state->motorState[m].q <<std::endl;
+    // }
     // }
     state->motorState[10].q = decodedState.arm_motor1.q;
-    state->motorState[10].dq= decodedState.arm_motor1.dq;
+    state->motorState[10].dq = decodedState.arm_motor1.dq;
     state->motorState[10].tauEst = decodedState.arm_motor1.tauEst;
 
     // std::cout << "Arm motor 1 state q is" << state->motorState[10].q << std::endl;
 
     state->motorState[11].q = decodedState.arm_motor2.q;
-    state->motorState[11].dq= decodedState.arm_motor2.dq;
+    state->motorState[11].dq = decodedState.arm_motor2.dq;
     state->motorState[11].tauEst = decodedState.arm_motor2.tauEst;
     // std::cout << "Arm motor 2 state q is" << state->motorState[11].q << std::endl;
 
     state->motorState[12].q = decodedState.arm_motor3.q;
-    state->motorState[12].dq= decodedState.arm_motor3.dq;
+    state->motorState[12].dq = decodedState.arm_motor3.dq;
     state->motorState[12].tauEst = decodedState.arm_motor3.tauEst;
     // std::cout << "Arm motor 3 state q is" << state->motorState[12].q << std::endl;
-    
+
     state->motorState[13].q = decodedState.arm_motor4.q;
-    state->motorState[13].dq= decodedState.arm_motor4.dq;
+    state->motorState[13].dq = decodedState.arm_motor4.dq;
     state->motorState[13].tauEst = decodedState.arm_motor4.tauEst;
     // std::cout << "Arm motor 4 state q is" << state->motorState[13].q << std::endl;
 
-
     state->motorState[14].q = decodedState.arm_motor5.q;
-    state->motorState[14].dq= decodedState.arm_motor5.dq;
+    state->motorState[14].dq = decodedState.arm_motor5.dq;
     state->motorState[14].tauEst = decodedState.arm_motor5.tauEst;
     // std::cout << "Arm motor 5 state q is" << state->motorState[14].q << std::endl;
 
     state->motorState[15].q = decodedState.arm_motor6.q;
-    state->motorState[15].dq= decodedState.arm_motor6.dq;
+    state->motorState[15].dq = decodedState.arm_motor6.dq;
     state->motorState[15].tauEst = decodedState.arm_motor6.tauEst;
     // std::cout << "Ar/m motor 6 state q is" << state->motorState[15].q << std::endl;
 
     state->motorState[16].q = decodedState.arm_motor7.q;
-    state->motorState[16].dq= decodedState.arm_motor7.dq;
+    state->motorState[16].dq = decodedState.arm_motor7.dq;
     state->motorState[16].tauEst = decodedState.arm_motor7.tauEst;
     // std::cout << "Arm motor 7 state q is" << state->motorState[16].q << std::endl;
 
     state->motorState[17].q = decodedState.arm_motor8.q;
-    state->motorState[17].dq= decodedState.arm_motor8.dq;
+    state->motorState[17].dq = decodedState.arm_motor8.dq;
     state->motorState[17].tauEst = decodedState.arm_motor8.tauEst;
     // std::cout << "Arm motor 8 state q is" << state->motorState[17].q << std::endl;
 
@@ -326,7 +324,8 @@ void IOSDK::ReceiveUDP(LowlevelState *state){
     state->imu.accelerometer[1] = decodedState.imu_1.AccY;
     state->imu.accelerometer[2] = decodedState.imu_1.AccZ;
 
-    if (!bias_calibrated){
+    if (!bias_calibrated)
+    {
         gyro_bias_x_ += state->imu.gyroscope[0];
         gyro_bias_y_ += state->imu.gyroscope[1];
         gyro_bias_z_ += state->imu.gyroscope[2];
@@ -337,7 +336,8 @@ void IOSDK::ReceiveUDP(LowlevelState *state){
 
         sample_count_++;
 
-        if (sample_count_ == calibration_samples_){
+        if (sample_count_ == calibration_samples_)
+        {
             gyro_bias_x_ /= calibration_samples_;
             gyro_bias_y_ /= calibration_samples_;
             gyro_bias_z_ /= calibration_samples_;
@@ -349,7 +349,9 @@ void IOSDK::ReceiveUDP(LowlevelState *state){
             // Calculate initial roll and pitch
             roll_ = atan2(avg_acc_y, avg_acc_z);
             pitch_ = atan2(-avg_acc_x, sqrt(avg_acc_y * avg_acc_y + avg_acc_z * avg_acc_z));
-
+            // Assuming we start laying the robot down all the time
+            //roll_ = 0.0;
+            //pitch_ = +M_PI/2 + M_PI/80;
             bias_calibrated = true;
         }
     }
@@ -363,19 +365,15 @@ void IOSDK::ReceiveUDP(LowlevelState *state){
         roll_ += corrected_gyro_x * dt_;
         pitch_ += corrected_gyro_y * dt_;
         yaw_ += corrected_gyro_z * dt_;
-
     }
 
     state->imu.rpy[0] = roll_;
     state->imu.rpy[1] = pitch_;
     state->imu.rpy[2] = yaw_;
-    
 
     const auto _end_recv = std::chrono::high_resolution_clock::now();
-    auto _duration_recv = std::chrono::duration_cast<std::chrono::microseconds>(_end_recv-_start_recv);
+    auto _duration_recv = std::chrono::duration_cast<std::chrono::microseconds>(_end_recv - _start_recv);
     // std::cout << "Time taken by recvState() message is " << _duration_recv.count() << "micro s\n";
-
-    
 }
 
 // void IOSDK::sendRecv(const LowlevelCmd *cmd, LowlevelState *state){
@@ -440,7 +438,7 @@ void IOSDK::ReceiveUDP(LowlevelState *state){
 //     state->motorState[13].q = decodedState.arm_motor3.q;
 //     state->motorState[13].dq= decodedState.arm_motor3.dq;
 //     state->motorState[13].tauEst = decodedState.arm_motor3.tauEst;
-    
+
 //     state->motorState[14].q = decodedState.arm_motor4.q;
 //     state->motorState[14].dq= decodedState.arm_motor4.dq;
 //     state->motorState[14].tauEst = decodedState.arm_motor4.tauEst;
@@ -460,9 +458,9 @@ void IOSDK::ReceiveUDP(LowlevelState *state){
 //     state->motorState[18].q = decodedState.arm_motor8.q;
 //     state->motorState[18].dq= decodedState.arm_motor8.dq;
 //     state->motorState[18].tauEst = decodedState.arm_motor8.tauEst;
-    
+
 //     // std::cout << "Running Custom Communication" << std::endl;
-    
+
 //     message_to_encode = LowLevelCmd_init_zero;
 
 //     message_to_encode.arm_motor1.mode = 0;
@@ -517,8 +515,6 @@ void IOSDK::ReceiveUDP(LowlevelState *state){
 //     message_to_encode.leg_motor10.dq = cmd->motorCmd[10].dq;
 //     message_to_encode.leg_motor10.kp = cmd->motorCmd[10].Kp;
 //     message_to_encode.leg_motor10.kd = cmd->motorCmd[10].tau;
-
-
 
 //     message_to_encode.arm_motor1.q = cmd->motorCmd[11].q;
 //     message_to_encode.arm_motor1.dq = cmd->motorCmd[11].dq;

@@ -21,8 +21,6 @@ import mujoco
 import mujoco.viewer
 import time
 
-# IMU utils
-from imumaster import Orientation
 
 _HERE = epath.Path(__file__).parent
 _ONNX_DIR = _HERE / "onnx"
@@ -35,15 +33,15 @@ class imu_state:
 
 @dataclass
 class joint_state:
-    q: np.ndarray = field(default_factory=lambda: np.zeros(6))
-    dq: np.ndarray = field(default_factory=lambda: np.zeros(6))
-    tau_est: np.ndarray = field(default_factory=lambda: np.zeros(6))
+    q: np.ndarray = field(default_factory=lambda: np.zeros(18))
+    dq: np.ndarray = field(default_factory=lambda: np.zeros(18))
+    tau_est: np.ndarray = field(default_factory=lambda: np.zeros(18))
 
 @dataclass
 class joint_act:
-    q: np.ndarray = field(default_factory=lambda: np.zeros(6))
-    kp: float = 0.0
-    kd: float = 0.0
+    q: np.ndarray = field(default_factory=lambda: np.zeros(18))
+    kp: np.ndarray = field(default_factory=lambda: np.zeros(18))
+    kd: np.ndarray = field(default_factory=lambda: np.zeros(18))
     calibrate: bool = False
     enable: bool = True
      
@@ -73,20 +71,16 @@ class hw_wrapper:
         self.imu = imu_state()
         self.joint_state = joint_state()
         self.joint_act = joint_act()
-        
-        # hw params
-        self.mot_dir = np.array([1, 1, 1, 1, 1, 1])
-        self.joint_offset = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
         # Init motor kp
-        self.joint_act.kp = 0.0
-        self.joint_act.kd = 0.0
+        self.joint_act.kp = np.zeros(18)
+        self.joint_act.kd = np.zeros(18)
         
         # Policy onnx params
         self._output_names = ["continuous_actions"]
-        #self._policy = rt.InferenceSession(
-        #    policy_path, providers=["CPUExecutionProvider"]
-        #)
+        self._policy = rt.InferenceSession(
+            policy_path, providers=["CPUExecutionProvider"]
+        )
         print("ONNX policy init done")
 
         # Local obs buffer
@@ -107,10 +101,7 @@ class hw_wrapper:
         self._phase_dt = 2 * np.pi * self._gait_freq * ctrl_dt
         
         # Global command
-        self.command = np.array([0.3, 0.0, 0.0])
-        
-        # External IMU filter
-        ekf_imu = Orientation(sample=2000, frame="ENU", method="EKF")
+        self.command = np.array([0.0, 0.0, 0.0])
         
     # Receive low-state from C++ handle, all ik has been solved in the C++ script
     def low_state_handle(self, channel, data):
@@ -130,7 +121,7 @@ class hw_wrapper:
         gyro = self.imu.gyro
         acc = self.imu.acc
         # Check axis alignment of this with hector
-        imu_xmat_obj = Rotation.from_euler('yxz', self.imu.rpy, degrees=False)
+        imu_xmat_obj = Rotation.from_euler('xyz', self.imu.rpy, degrees=False)
         imu_xmat = imu_xmat_obj.as_matrix()
         gravity = imu_xmat.T @ np.array([0, 0, -1])
         
@@ -153,7 +144,6 @@ class hw_wrapper:
         obs = np.hstack([
             obs_n, 
             self._last_obs,
-            self._last_last_obs
         ])
 
         # Update obs history
@@ -170,33 +160,42 @@ class hw_wrapper:
         # Get obs
         obs = self.get_obs()
         onnx_input = {"obs": obs.reshape(1, -1)}
-        #act_pred = self._policy.run(self._output_names, onnx_input)[0][0]
-        act_pred = np.zeros(self._nu, dtype=np.float32)
+        act_pred = self._policy.run(self._output_names, onnx_input)[0][0]
+        #act_pred = np.zeros(self._nu, dtype=np.float32)
 
         # Update action buffer
         self._last_action = act_pred.copy()
-        
         # Get target joint
-        q_tar = act_pred*self._act_scale + self._default_q
-        #print(q_tar)
+        self.q_tar = act_pred*self._act_scale + self._default_q
+        print(self.q_tar)
       
         # Set initial zero position, debug
         self.joint_act.q = np.zeros(self._nu)
+
+        default_q = np.array([0.00, 0.00, 0.785, -1.57, 0.785,
+                            0.00, 0.00, 0.785, -1.57, 0.785,
+                            0.00, 0.785, 0.000,  -1.57,
+                            0.00, 0.785, 0.000,  -1.57])  
+        kp_list  =  np.array([30.0, 30.0, 30.0, 30.0, 5.0,
+                              30.0, 30.0, 30.0, 30.0, 5.0,
+                              5.0, 5.0, 5.0,  5.0,
+                              5.0, 5.0, 5.0,  5.0]) 
         
-        #self.joint_act.q = q_tar
+        self.joint_act.q[0:18] = default_q[0:18]
+        self.joint_act.kp[:] = kp_list[:] * 1.05 #8.0 * np.ones(18)
+        self.joint_act.kd = 1.8 * np.ones(18)
+        
+        
+        #self.joint_act.q = self.q_tar
 
         
     def update_state(self):
         # Update state variable from received low-level states msg to internal buffer
         # Copy over imu states, history, cehck hector's rad/axis limit
-        #self.imu.rpy = np.array(self.low_state_msg.rpy) # for hector, it's in rad
-        # Onboard rpy estimation is bad, we use external ekf
+        self.imu.rpy = np.array(self.low_state_msg.rpy) # for hector, it's in rad
         self.imu.gyro = np.array(self.low_state_msg.gyroscope)
         self.imu.acc = np.array(self.low_state_msg.accelerometer) 
-        
-        q_est = self.ekf_imu.EKF(self.imu.acc, self.imu.gyro)
-        rpy_est = self.ekf_imu.eulerangle(q_est)
-        print(rpy_est)
+        #self.imu.rpy[0] += np.pi
         
         # Low_state to joint state
         self.joint_state.q = np.array(self.low_state_msg.q)
@@ -213,8 +212,11 @@ class hw_wrapper:
         self.low_cmd_msg.kp = self.joint_act.kp
         self.low_cmd_msg.kd = self.joint_act.kd
         
-        self.low_cmd_msg.enable[:] = self.joint_act.enable * np.ones(self._nu)
-        self.low_cmd_msg.calibrate[:] = self.joint_act.calibrate * np.ones(self._nu)
+        val_enable = 1 if self.joint_act.enable else 0
+        val_calib  = 1 if self.joint_act.calibrate else 0
+        for i in range(self._nu):
+            self.low_cmd_msg.enable[i] = val_enable
+            self.low_cmd_msg.calibrate[i] = val_calib
         # TODO: Joint limit safety check
         
         # Send to lcm
@@ -230,7 +232,7 @@ if __name__ == "__main__":
                           0.00, 0.785, 0.000,  -1.57])
     onnx_path = "onnx/hector_policy.onnx"
     dt = 0.02
-    act_scale = 0.5
+    act_scale = 0.52
     kp = 5.0
     kd = 0.1
     
@@ -248,7 +250,7 @@ if __name__ == "__main__":
     try:
         main_ctrl_loop.start()
         low_state_loop.start()
-        #low_cmd_loop.start()
+        low_cmd_loop.start()
         print("Running all control loops. Press Ctrl+C to exit early.")
         
         # Init mujoco visualizer for debug
@@ -262,17 +264,18 @@ if __name__ == "__main__":
                 hw_q = hector_hw.joint_state.q
                 hw_rpy = hector_hw.imu.rpy
                 
-                print(hector_hw.imu.acc[0])
-                print(hector_hw.imu.acc[1])
-                print(hector_hw.imu.acc[2])
+                print(hector_hw.imu.rpy[0])
+                print(hector_hw.imu.rpy[1])
+                print(hector_hw.imu.rpy[2])
                 print(" -------------------- ")
-                
-                rot: Rotation = Rotation.from_euler('zyx', hw_rpy, degrees=False)
-                qx, qy, qz, qw = rot.as_quat()
+            
+
+                R_sensor = Rotation.from_euler('xyz', hw_rpy, degrees=False)
+                qx, qy, qz, qw = R_sensor.as_quat()
                 quat_wxyz = (qw, qx, qy, qz)
-                
+                                
                 data.qpos[0:3] = np.array([0.0, 0.0, 0.0])
-                data.qpos[3:7] = np.array([1.0, 0.0, 0.0, 0.0])
+                data.qpos[3:7] = quat_wxyz#np.array([1.0, 0.0, 0.0, 0.0])
                 data.qpos[7:7+18] = hw_q
                 data.qvel[:] = 0
                 

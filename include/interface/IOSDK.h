@@ -37,7 +37,7 @@ std::chrono::high_resolution_clock::time_point previoustime;
 
 bool bias_calibrated = false;
 int sample_count_ = 0;
-const int calibration_samples_ = 500;
+const int calibration_samples_ = 1500;
 
 float gyro_bias_x_ = 0.0f;
 float gyro_bias_y_ = 0.0f;

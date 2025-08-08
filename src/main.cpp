@@ -50,6 +50,7 @@ private:
     double gear_ratio_arm;
     double knee_offset;
     int joint_dir[18];
+    int imu_dir[3];
 };
 
 custom_wrapper::custom_wrapper()
@@ -82,6 +83,9 @@ custom_wrapper::custom_wrapper()
         1, 1,-1, 1
     };
     std::copy(j_dir_init_vals, j_dir_init_vals+18, joint_dir);
+    int imu_dir_vals[3] = {1,1,1};
+    std::copy(imu_dir_vals, imu_dir_vals+3, imu_dir);
+
 }
 
 custom_wrapper::~custom_wrapper()
@@ -176,9 +180,9 @@ void custom_wrapper::ctrl_loop()
                           0.00, 0.00, 0.785, -1.57, 0.785,
                           0.00, 0.785, 0.000,  -1.57,
                           0.00, 0.785, 0.000,  -1.57};
-    double kp_leg = 5.0;
+    double kp_leg = 0.0;//5.0;
     double kd_leg = 0.4;
-    double kp_arm = 3.0;
+    double kp_arm = 0.0;//3.0;
     double kd_arm = 0.3;
 
     // Assign values for leg
@@ -353,11 +357,11 @@ void custom_wrapper::hw_fk() {
     mujoco_state->motorState[17].dq  = joint_dir[17] * low_state->motorState[17].dq / gear_ratio_arm;
     mujoco_state->motorState[17].tauEst = joint_dir[17] * low_state->motorState[17].tauEst * gear_ratio_arm;
 
-    // IMU (unchanged)
+    // IMU (change some axis dir)
     for (int i = 0; i < 3; ++i) {
-        mujoco_state->imu.rpy[i]           = low_state->imu.rpy[i];
-        mujoco_state->imu.gyroscope[i]     = low_state->imu.gyroscope[i];
-        mujoco_state->imu.accelerometer[i] = low_state->imu.accelerometer[i];
+        mujoco_state->imu.rpy[i]           = low_state->imu.rpy[i] * imu_dir[i];
+        mujoco_state->imu.gyroscope[i]     = low_state->imu.gyroscope[i] * imu_dir[i];
+        mujoco_state->imu.accelerometer[i] = low_state->imu.accelerometer[i] * imu_dir[i];
     }
 }
 
@@ -400,8 +404,8 @@ int main()
     loop_hw_send.start();
     loop_hw_recv.start();
     loop_lcm_send.start();
-    //loop_lcm_recv.start();
-    loop_ctrl.start();
+    loop_lcm_recv.start();
+    //loop_ctrl.start();
 
     while(true)
     {
