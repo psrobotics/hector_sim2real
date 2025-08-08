@@ -33,7 +33,7 @@ set(EXTRA_LIBS -pthread libunitree_legged_sdk_amd64.so lcm libCustomCommunicatio
 set(CMAKE_CXX_FLAGS "-O3")
 
 
-file(GLOB_RECURSE sources "include/*/*.h" "src/*/*.cpp" "include/*/*/*.h")
+file(GLOB_RECURSE sources "include/*/*.h" "include/*/*.hpp" "src/*/*.cpp" "include/*/*/*.h")
 
 #add_library(src ${sources} src/common/PoseData.cpp)
 #target_link_libraries(src ${EXTRA_LIBS} ${DEPENDENCIES})

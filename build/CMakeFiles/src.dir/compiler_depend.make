@@ -695,6 +695,8 @@ CMakeFiles/src.dir/src/interface/IOSDK.cpp.o: ../src/interface/IOSDK.cpp \
   ../include/Custom_SDK/include/pb_encode.h \
   ../include/Custom_SDK/include/pb.h \
   ../include/Custom_SDK/include/pb_decode.h \
+  ../include/interface/Madgwick_class.hpp \
+  ../include/interface/MadgwickAHRS.h \
   ../include/interface/WirelessHandle.h \
   ../include/sdk/include/comm.h \
   ../include/interface/KeyBoard.h \
@@ -2681,6 +2683,8 @@ CMakeFiles/src.dir/src/interface/WirelessHandle.cpp.o: ../src/interface/Wireless
 
 /usr/lib/gcc/x86_64-linux-gnu/11/include/avx512ifmavlintrin.h:
 
+../include/interface/MadgwickAHRS.h:
+
 /usr/include/boost/type_traits/is_function.hpp:
 
 /usr/include/boost/type_traits/add_rvalue_reference.hpp:
@@ -3592,6 +3596,8 @@ CMakeFiles/src.dir/src/interface/WirelessHandle.cpp.o: ../src/interface/Wireless
 /usr/lib/gcc/x86_64-linux-gnu/11/include/uintrintrin.h:
 
 ../include/interface/KeyBoard.h:
+
+../include/interface/Madgwick_class.hpp:
 
 /usr/include/boost/type_traits/integral_constant.hpp:
 

@@ -7,6 +7,7 @@
 // #include "nanopb/pb_decode.h"
 #include <fstream>
 #include "../Custom_SDK/include/CustomCommunication.h"
+#include "Madgwick_class.hpp"
 
 // extern "C"{
 //     #include "Full_encode.pb.h"
@@ -34,6 +35,9 @@ LowLevelCmd message_to_encode;
 CustomCommunication customcommunication;
 // static int count;
 std::chrono::high_resolution_clock::time_point previoustime;
+
+// Madgwick imu filter, freq and beta
+imu_madgwick imu_filter;
 
 bool bias_calibrated = false;
 int sample_count_ = 0;
