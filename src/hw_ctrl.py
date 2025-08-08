@@ -181,8 +181,8 @@ class hw_wrapper:
                               5.0, 5.0, 5.0,  5.0,
                               5.0, 5.0, 5.0,  5.0]) 
         
-        self.joint_act.q[0:18] = default_q[0:18]
-        self.joint_act.kp[:] = kp_list[:] * 1.05 #8.0 * np.ones(18)
+        self.joint_act.q[0:10] = default_q[0:10]
+        self.joint_act.kp[:] = kp_list[:] * 0.4 #8.0 * np.ones(18)
         self.joint_act.kd = 1.8 * np.ones(18)
         
         
@@ -239,10 +239,10 @@ if __name__ == "__main__":
     hector_hw = hw_wrapper(default_q, onnx_path, dt, act_scale, kp, kd)
     
     # Add periodic tasks
-    # Low_state loop, running 2000hz
-    low_state_loop = loop_func(name="low_state", period=0.0005, cb=hector_hw.lcm_loop)
-    # Low_cmd loop, running 2000hz
-    low_cmd_loop = loop_func(name="low_cmd", period=0.0005, cb=hector_hw.send_low_cmd)
+    # Low_state loop, running 1000hz
+    low_state_loop = loop_func(name="low_state", period=0.001, cb=hector_hw.lcm_loop)
+    # Low_cmd loop, running 1000hz
+    low_cmd_loop = loop_func(name="low_cmd", period=0.001, cb=hector_hw.send_low_cmd)
     # Main control loop, 50hz
     main_ctrl_loop = loop_func(name="main_ctrl", period=0.02, cb=hector_hw.get_ctrl)
     

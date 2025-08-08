@@ -12,7 +12,7 @@ static int count;
 IOSDK::IOSDK(LeggedType robot, int cmd_panel_id) : _control(robot),
                                                    _udp(LOWLEVEL),
                                                    customcommunication(8070),
-                                                   imu_filter(2048.0f, 0.1f)
+                                                   imu_filter(1000.0f, 0.05f)
 {
     std::cout << "The control interface for real robot" << std::endl;
     _udp.InitCmdData(_lowCmd);
@@ -346,8 +346,9 @@ void IOSDK::ReceiveUDP(LowlevelState *state)
             avg_acc_z = acc_sum_z_ / calibration_samples_;
 
             // Calculate initial roll and pitch
-            roll_ = atan2(avg_acc_y, avg_acc_z);
-            pitch_ = atan2(-avg_acc_x, sqrt(avg_acc_y * avg_acc_y + avg_acc_z * avg_acc_z));
+            //roll_ = atan2(avg_acc_y, avg_acc_z);
+            //pitch_ = atan2(-avg_acc_x, sqrt(avg_acc_y * avg_acc_y + avg_acc_z * avg_acc_z));
+
             // Assuming we start laying the robot down all the time
             //roll_ = 0.0;
             //pitch_ = +M_PI/2 + M_PI/80;
@@ -356,34 +357,34 @@ void IOSDK::ReceiveUDP(LowlevelState *state)
     }
     else
     {
-        corrected_gyro_x = state->imu.gyroscope[0] - gyro_bias_x_;
-        corrected_gyro_y = state->imu.gyroscope[1] - gyro_bias_y_;
-        corrected_gyro_z = state->imu.gyroscope[2] - gyro_bias_z_;
+        corrected_gyro_x = state->imu.gyroscope[0]- gyro_bias_x_;
+        corrected_gyro_y = state->imu.gyroscope[1]- gyro_bias_y_;
+        corrected_gyro_z = state->imu.gyroscope[2]- gyro_bias_z_;
 
         // Integrate gyro to get orientation
-        roll_ += corrected_gyro_x * dt_;
-        pitch_ += corrected_gyro_y * dt_;
-        yaw_ += corrected_gyro_z * dt_;
+        //roll_ += corrected_gyro_x * dt_;
+        //pitch_ += corrected_gyro_y * dt_;
+        //yaw_ += corrected_gyro_z * dt_;
+
+        // Use new imu filter
+        float gx = state->imu.gyroscope[0] - gyro_bias_x_;
+        float gy = state->imu.gyroscope[1] - gyro_bias_y_;
+        float gz = state->imu.gyroscope[2] - gyro_bias_z_;
+        // The filter uses g scale
+        float ax = state->imu.accelerometer[0]/9.81f;
+        float ay = state->imu.accelerometer[1]/9.81f;
+        float az = state->imu.accelerometer[2]/9.81f;
+        imu_filter.update(gx,gy,gz, ax,ay,az);
+        auto [rr, pp, yy] = imu_filter.get_euler();
+
+        roll_ = (float)rr;
+        pitch_ = (float)pp;
+        yaw_ = (float)yy;
     }
 
-    // Use new imu filter
-    float gx = state->imu.gyroscope[0];
-    float gy = state->imu.gyroscope[1];
-    float gz = state->imu.gyroscope[2];
-    // The filter uses g scale
-    float ax = state->imu.accelerometer[0]/9.81f;
-    float ay = state->imu.accelerometer[1]/9.81f;
-    float az = state->imu.accelerometer[2]/9.81f;
-    imu_filter.update(gx,gy,gz, ax,ay,az);
-    auto [f_roll, f_pitch, f_yaw] = imu_filter.get_euler();
-
-    state->imu.rpy[0] = (float)f_roll;
-    state->imu.rpy[1] = (float)f_pitch;
-    state->imu.rpy[2] = (float)f_yaw;
-
-    //state->imu.rpy[0] = roll_;
-    //state->imu.rpy[1] = pitch_;
-    //state->imu.rpy[2] = yaw_;
+    state->imu.rpy[0] = roll_;
+    state->imu.rpy[1] = pitch_;
+    state->imu.rpy[2] = yaw_;
 
     const auto _end_recv = std::chrono::high_resolution_clock::now();
     auto _duration_recv = std::chrono::duration_cast<std::chrono::microseconds>(_end_recv - _start_recv);

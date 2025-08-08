@@ -719,7 +719,6 @@ CMakeFiles/biped_ctrl.dir/src/main.cpp.o: ../src/main.cpp \
   ../include/Custom_SDK/include/pb.h \
   ../include/Custom_SDK/include/pb_decode.h \
   ../include/interface/Madgwick_class.hpp \
-  ../include/interface/MadgwickAHRS.h \
   ../include/Custom_SDK/include/low_cmd_t.hpp \
   /usr/local/include/lcm/lcm_coretypes.h \
   ../include/Custom_SDK/include/low_state_t.hpp
@@ -820,8 +819,6 @@ CMakeFiles/biped_ctrl.dir/src/main.cpp.o: ../src/main.cpp \
 /usr/include/boost/type_traits/has_trivial_destructor.hpp:
 
 /usr/include/boost/type_traits/detail/yes_no_type.hpp:
-
-../include/interface/MadgwickAHRS.h:
 
 /usr/include/boost/type_traits/is_function.hpp:
 

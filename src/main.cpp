@@ -382,7 +382,7 @@ int main()
     set_process_scheduler();
 
     double ctrl_dt = 0.02; //50hz
-    double lowlevel_dt = 0.0005; //2000hz
+    double lowlevel_dt = 0.001; //1000hz
 
     int robot_id = 4;     // AlienGo=1, A1=2, Biped=4
     int cmd_panel_id = 2; // Wireless=1, keyboard=2
