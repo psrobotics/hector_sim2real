@@ -172,18 +172,24 @@ class hw_wrapper:
         # Set initial zero position, debug
         self.joint_act.q = np.zeros(self._nu)
 
-        default_q = np.array([0.00, 0.00, 0.785, -1.57, 0.785,
-                            0.00, 0.00, 0.785, -1.57, 0.785,
+        start_q = np.array([0.00, 0.20, 0.785, -1.57, 0.785+0.15,
+                            0.00, -0.20, 0.785, -1.57, 0.785+0.15,
                             0.00, 0.785, 0.000,  -1.57,
                             0.00, 0.785, 0.000,  -1.57])  
+        
         kp_list  =  np.array([30.0, 30.0, 30.0, 30.0, 5.0,
                               30.0, 30.0, 30.0, 30.0, 5.0,
                               5.0, 5.0, 5.0,  5.0,
                               5.0, 5.0, 5.0,  5.0]) 
         
-        self.joint_act.q[0:10] = default_q[0:10]
-        self.joint_act.kp[:] = kp_list[:] * 0.4 #8.0 * np.ones(18)
-        self.joint_act.kd = 1.8 * np.ones(18)
+        kd_list  =  np.array([2.0, 2.0, 2.0, 2.0, 0.3,
+                              2.0, 2.0, 2.0, 2.0, 0.3,
+                              0.2, 0.2, 0.2,  0.2,
+                              0.2, 0.2, 0.2,  0.2])  
+        
+        self.joint_act.q[0:10] = start_q[0:10]
+        self.joint_act.kp[:] = kp_list[:] * 1.0 #8.0 * np.ones(18)
+        self.joint_act.kd[:] = kd_list[:] * 1.0
         
         
         #self.joint_act.q = self.q_tar
@@ -230,7 +236,7 @@ if __name__ == "__main__":
                           0.00, 0.00, 0.785, -1.57, 0.785,
                           0.00, 0.785, 0.000,  -1.57,
                           0.00, 0.785, 0.000,  -1.57])
-    onnx_path = "onnx/hector_policy.onnx"
+    onnx_path = "onnx/hector_joystick.onnx"
     dt = 0.02
     act_scale = 0.52
     kp = 5.0
