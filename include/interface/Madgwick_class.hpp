@@ -40,6 +40,7 @@ public:
     return {q0, q1, q2, q3};
   }
 
+  /*
   /// Convenience: extract roll/pitch/yaw (rad) from q via Eigen
   std::array<float, 3> get_euler() const
   {
@@ -53,6 +54,44 @@ public:
     Eigen::Vector3f euler = quat.toRotationMatrix().eulerAngles(0, 1, 2);
     return {euler.x(), euler.y(), euler.z()};
   }
+  */
+
+  std::array<float, 3> get_euler() const
+  {
+  // Use more descriptive variable names for clarity in formulas
+  const float w = q0;
+  const float x = q1;
+  const float y = q2;
+  const float z = q3;
+
+  // Roll (x-axis rotation)
+  // Uses atan2 for full [-π, π] range
+  const float t0 = +2.0f * (w * x + y * z);
+  const float t1 = +1.0f - 2.0f * (x * x + y * y);
+  const float roll = std::atan2(t0, t1);
+
+  // Pitch (y-axis rotation)
+  // This value is constrained to the range [-1, 1], which limits pitch to [-π/2, π/2].
+  float t2 = +2.0f * (w * y - z * x);
+  
+  // Clamp the value to the valid asin range of [-1, 1] for robustness at gimbal lock.
+  if (t2 > 1.0f) {
+    t2 = 1.0f;
+  }
+  if (t2 < -1.0f) {
+    t2 = -1.0f;
+  }
+  const float pitch = asin(t2);
+
+  // Yaw (z-axis rotation)
+  // Uses atan2 for full [-π, π] range
+  const float t3 = +2.0f * (w * z + x * y);
+  const float t4 = +1.0f - 2.0f * (y * y + z * z);
+  const float yaw = atan2(t3, t4);
+
+  // Return as {roll, pitch, yaw} in radians
+  return {roll, pitch, yaw};
+}
 
   float invSqrt(float x)
   {

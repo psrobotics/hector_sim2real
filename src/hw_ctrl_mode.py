@@ -59,15 +59,17 @@ _STANDING_KP = np.array([
     5.0, 5.0, 5.0, 5.0
 ])
 _STANDING_KD = np.array([
-    2.0, 2.0, 2.0, 2.0, 0.3,
-    2.0, 2.0, 2.0, 2.0, 0.3,
-    0.2, 0.2, 0.2, 0.2,
-    0.2, 0.2, 0.2, 0.2
+    2.0, 2.0, 2.0, 2.0, 0.5,
+    2.0, 2.0, 2.0, 2.0, 0.5,
+    1.0, 1.0, 1.0, 1.0,
+    1.0, 1.0, 1.0, 1.0
 ])
 
 # Policy Gains
-_POLICY_KP = _STANDING_KP * 0.8
-_POLICY_KD = _STANDING_KD * 0.8
+_POLICY_KP = _STANDING_KP * 1.0
+_POLICY_KD = _STANDING_KD * 1.0
+
+_INTERPOLATION_DURATION = 2.0
 
 # --- Enums and Dataclasses ---
 
@@ -108,9 +110,25 @@ class HectorController:
         self._ctrl_dt = ctrl_dt
         self._action_scale = action_scale
 
+        # --- NEW: Central dictionary for target gains ---
+        self._TARGET_GAINS = {
+            ControlState.DAMPING: (np.zeros(_NUM_JOINTS), np.full(_NUM_JOINTS, 3.0)),
+            ControlState.STANDING: (_STANDING_KP, _STANDING_KD),
+            ControlState.POLICY: (_POLICY_KP, _POLICY_KD),
+        }
+        # --- NEW: Interpolation attributes ---
+        self._is_interpolating = False
+        self._interpolation_start_time = 0.0
+        self._kp_start = np.zeros(_NUM_JOINTS)
+        self._kd_start = np.zeros(_NUM_JOINTS)
+        self._kp_target = np.zeros(_NUM_JOINTS)
+        self._kd_target = np.zeros(_NUM_JOINTS)
+        # Initialize current gains to the DAMPING state target
+        self.joint_cmd = JointCommand()
+        self.joint_cmd.kp, self.joint_cmd.kd = self._TARGET_GAINS[ControlState.DAMPING]
         # State machine
         self.state = ControlState.DAMPING
-        self._state_lock = threading.Lock()
+        #self._state_lock = threading.Lock()
         self._state_start_time = time.time()
         print(f"🚀 Starting in {self.state.name} state.")
 
@@ -139,21 +157,30 @@ class HectorController:
 
         # Gait parameters
         self._phase = np.array([0.0, np.pi])
-        self._gait_freq = 0.6
+        self._gait_freq = 1.0
         self._phase_dt = 2 * np.pi * self._gait_freq * self._ctrl_dt
 
         # User commands
-        self._twist_command = np.array([0.0, 0.0, 0.2])
+        self._twist_command = np.array([0.0, 0.0, 0.0])
         self._body_command = np.zeros(12)
         self._body_command[0] = 0.55
 
+
     def switch_state(self, new_state: ControlState):
-        """Safely transitions the controller to a new state."""
-        with self._state_lock:
-            if self.state != new_state:
-                self.state = new_state
-                self._state_start_time = time.time()
-                print(f"\n---> Switched to {self.state.name} state.")
+        """Triggers a smooth transition to a new control state."""
+        if self.state == new_state and not self._is_interpolating:
+            return
+        print(f"\n---> Requesting transition to {new_state.name} state...")
+        self._is_interpolating = True
+        self._interpolation_start_time = time.time()
+        
+        # Store current and target gains for interpolation
+        self._kp_start = self.joint_cmd.kp.copy()
+        self._kd_start = self.joint_cmd.kd.copy()
+        self._kp_target, self._kd_target = self._TARGET_GAINS[new_state]
+        
+        # Store the state we are transitioning to
+        self._next_state = new_state
 
     def _lcm_state_callback(self, channel, data):
         self._low_state_msg = low_state_t.decode(data)
@@ -169,53 +196,89 @@ class HectorController:
         self.joint_state.dq = np.array(self._low_state_msg.dq)
 
     def _get_observation(self) -> np.ndarray:
-        imu_xmat = Rotation.from_euler('xyz', self.imu.rpy).as_matrix()
+        
+        new_euler = self.imu.rpy
+        
+        imu_xmat = Rotation.from_euler('xyz', new_euler, degrees=False).as_matrix()
         gravity_vec = imu_xmat.T @ np.array([0, 0, -1])
         joint_angles_rel = self.joint_state.q - _DEFAULT_Q
         phase = np.concatenate([np.cos(self._phase), np.sin(self._phase)])
         command = np.hstack([self._twist_command, self._body_command])
 
         obs_n = np.hstack([
-            self.imu.gyro, self.imu.acc, gravity_vec, joint_angles_rel,
-            self.joint_state.dq, self._last_action, phase, command
+            self.imu.gyro,
+            self.imu.acc,
+            gravity_vec,
+            joint_angles_rel,
+            self.joint_state.dq,
+            self._last_action,
+            phase,
+            command
         ]).astype(np.float32)
+        
+        print(obs_n)
 
-        obs = np.hstack([obs_n, self._last_obs_1, self._last_obs_2, self._last_obs_3])
+        obs = np.hstack([
+            obs_n,
+            self._last_obs_1,
+            self._last_obs_2,
+            self._last_obs_3
+            ])
+        
+        # Update history obs
         self._last_obs_3, self._last_obs_2, self._last_obs_1 = self._last_obs_2, self._last_obs_1, obs_n
+        
         return obs
+    
+    def _update_gains(self):
+        """Handles the linear interpolation of gains if a transition is active."""
+        if not self._is_interpolating:
+            return
+
+        elapsed_time = time.time() - self._interpolation_start_time
+        progress = min(elapsed_time / _INTERPOLATION_DURATION, 1.0)
+
+        # Linearly interpolate kp and kd
+        self.joint_cmd.kp = self._kp_start + (self._kp_target - self._kp_start) * progress
+        self.joint_cmd.kd = self._kd_start + (self._kd_target - self._kd_start) * progress
+
+        # If interpolation is complete, finalize the state change
+        if progress >= 1.0:
+            self._is_interpolating = False
+            self.state = self._next_state
+            # Ensure gains are exactly the target values
+            #self.joint_cmd.kp = self._kp_target.copy()
+            #self.joint_cmd.kd = self._kd_target.copy()
+            print(f"✔️ Transition complete. Now in {self.state.name} state.")
+
 
     def run_control_tick(self):
         """The main control loop callback, executed at `ctrl_dt`."""
-        print(controller.state)
-        
         if not self._lcm_data_received:
             return
 
         self._update_internal_state()
+        self._get_observation()
+        
+        # --- NEW: Handle gain updates every tick ---
+        self._update_gains()
+        print(self.joint_cmd.kp)
 
-        with self._state_lock:
-            current_state = self.state
-            
+        # Determine desired joint positions based on the CURRENT state
+        current_state = self.state
+        
         if current_state == ControlState.DAMPING:
             self.joint_cmd.q_des = self.joint_state.q
-            self.joint_cmd.kp[:] = 0.0
-            self.joint_cmd.kd[:] = 1.5
-
+            
         elif current_state == ControlState.STANDING:
             self.joint_cmd.q_des = _STANDING_Q
-            self.joint_cmd.kp = _STANDING_KP
-            self.joint_cmd.kd = _STANDING_KD
-
+            
         elif current_state == ControlState.POLICY:
             obs = self._get_observation()
             onnx_input = {"obs": obs.reshape(1, -1)}
             action = self._policy.run(self._output_names, onnx_input)[0][0]
-
             self._last_action = action.copy()
             self.joint_cmd.q_des = action * self._action_scale + _DEFAULT_Q
-            self.joint_cmd.kp = _POLICY_KP
-            self.joint_cmd.kd = _POLICY_KD
-            
             phase_tp1 = self._phase + self._phase_dt
             self._phase = np.fmod(phase_tp1 + np.pi, 2 * np.pi) - np.pi
             
@@ -252,7 +315,11 @@ def visualizer_thread_func(controller, model, data):
             if controller._lcm_data_received:
                 hw_q = controller.joint_state.q
                 hw_rpy = controller.imu.rpy
-                quat_wxyz = Rotation.from_euler('xyz', hw_rpy).as_quat(canonical=False)
+                
+                R_sensor = Rotation.from_euler('xyz', hw_rpy, degrees=False)
+                qx, qy, qz, qw = R_sensor.as_quat()
+                quat_wxyz = (qw, qx, qy, qz)
+                
                 data.qpos[3:7] = quat_wxyz
                 data.qpos[7:7 + _NUM_JOINTS] = hw_q
                 mujoco.mj_fwdPosition(model, data)
@@ -263,7 +330,7 @@ def visualizer_thread_func(controller, model, data):
 if __name__ == "__main__":
     policy_path = "onnx/hector_wbc_s2.onnx"
     ctrl_dt = 0.02
-    action_scale = 0.5
+    action_scale = 0.22
 
     controller = HectorController(
         policy_path=policy_path, ctrl_dt=ctrl_dt, action_scale=action_scale
