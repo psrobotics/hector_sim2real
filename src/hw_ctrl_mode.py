@@ -53,21 +53,21 @@ _STANDING_Q = np.array([
     0.00, 0.785, 0.000, -1.57
 ])
 _STANDING_KP = np.array([
-    30.0, 30.0, 30.0, 30.0, 5.0,
-    30.0, 30.0, 30.0, 30.0, 5.0,
+    50.0, 50.0, 50.0, 50.0, 6.0,
+    50.0, 50.0, 50.0, 50.0, 6.0,
     5.0, 5.0, 5.0, 5.0,
     5.0, 5.0, 5.0, 5.0
 ])
 _STANDING_KD = np.array([
-    2.0, 2.0, 2.0, 2.0, 0.5,
-    2.0, 2.0, 2.0, 2.0, 0.5,
-    1.0, 1.0, 1.0, 1.0,
-    1.0, 1.0, 1.0, 1.0
+    0.75, 0.75, 0.75, 0.75, 0.15,
+    0.75, 0.75, 0.75, 0.75, 0.15,
+    0.1, 0.1, 0.1, 0.1,
+    0.1, 0.1, 0.1, 0.1
 ])
 
 # Policy Gains
-_POLICY_KP = _STANDING_KP * 1.0
-_POLICY_KD = _STANDING_KD * 1.0
+_POLICY_KP = _STANDING_KP * 1.1
+_POLICY_KD = _STANDING_KD * 2.0
 
 _INTERPOLATION_DURATION = 2.0
 
@@ -157,13 +157,19 @@ class HectorController:
 
         # Gait parameters
         self._phase = np.array([0.0, np.pi])
-        self._gait_freq = 1.0
+        self._gait_freq = 1.8
         self._phase_dt = 2 * np.pi * self._gait_freq * self._ctrl_dt
 
         # User commands
-        self._twist_command = np.array([0.0, 0.0, 0.0])
+        self._twist_command = np.array([1.0, 0.0, 0.0])
         self._body_command = np.zeros(12)
         self._body_command[0] = 0.55
+        
+        # Low pass filters hw obs
+        self._gyro_last = np.zeros(3)
+        self._acc_last = np.zeros(3)
+        self._q_last = np.zeros(_NUM_JOINTS)
+        self._dq_last = np.zeros(_NUM_JOINTS)
 
 
     def switch_state(self, new_state: ControlState):
@@ -197,26 +203,32 @@ class HectorController:
 
     def _get_observation(self) -> np.ndarray:
         
-        new_euler = self.imu.rpy
-        
-        imu_xmat = Rotation.from_euler('xyz', new_euler, degrees=False).as_matrix()
+        imu_xmat = Rotation.from_euler('xyz', self.imu.rpy, degrees=False).as_matrix()
         gravity_vec = imu_xmat.T @ np.array([0, 0, -1])
-        joint_angles_rel = self.joint_state.q - _DEFAULT_Q
         phase = np.concatenate([np.cos(self._phase), np.sin(self._phase)])
         command = np.hstack([self._twist_command, self._body_command])
+        
+        # why phase is not updating?
+        print(self._phase)
+        
+        # Low-pass filter some hw obs
+        gyro_f = 0.0*self._gyro_last + 1.0*self.imu.gyro
+        acc_f = 0.0*self._acc_last + 1.0*self.imu.acc
+        q_f = 0.0*self._q_last + 1.0*self.joint_state.q
+        dq_f = 0.5*self._dq_last + 0.5*self.joint_state.dq
 
         obs_n = np.hstack([
-            self.imu.gyro,
-            self.imu.acc,
+            gyro_f,
+            acc_f,
             gravity_vec,
-            joint_angles_rel,
-            self.joint_state.dq,
+            q_f - _DEFAULT_Q,
+            dq_f,
             self._last_action,
             phase,
             command
         ]).astype(np.float32)
         
-        print(obs_n)
+        #print(obs_n)
 
         obs = np.hstack([
             obs_n,
@@ -224,6 +236,12 @@ class HectorController:
             self._last_obs_2,
             self._last_obs_3
             ])
+        
+        # Update buffer
+        self._gyro_last = self.imu.gyro
+        self._acc_last = self.imu.acc
+        self._q_last = self.joint_state.q
+        self._dq_last = self.joint_state.dq
         
         # Update history obs
         self._last_obs_3, self._last_obs_2, self._last_obs_1 = self._last_obs_2, self._last_obs_1, obs_n
@@ -262,7 +280,6 @@ class HectorController:
         
         # --- NEW: Handle gain updates every tick ---
         self._update_gains()
-        print(self.joint_cmd.kp)
 
         # Determine desired joint positions based on the CURRENT state
         current_state = self.state
@@ -277,12 +294,13 @@ class HectorController:
             obs = self._get_observation()
             onnx_input = {"obs": obs.reshape(1, -1)}
             action = self._policy.run(self._output_names, onnx_input)[0][0]
+            # Low pass filter for action
+            action_f = 0.2*self._last_action + 0.8*action
             self._last_action = action.copy()
-            self.joint_cmd.q_des = action * self._action_scale + _DEFAULT_Q
-            phase_tp1 = self._phase + self._phase_dt
-            self._phase = np.fmod(phase_tp1 + np.pi, 2 * np.pi) - np.pi
             
-
+            self.joint_cmd.q_des = action_f * self._action_scale + _DEFAULT_Q   
+            phase_tp1 = self._phase + self._phase_dt
+            self._phase = np.fmod(phase_tp1 + np.pi, 2 * np.pi) - np.pi         
 
     def send_command(self):
         if not self._lcm_data_received: return
@@ -328,9 +346,9 @@ def visualizer_thread_func(controller, model, data):
 
 
 if __name__ == "__main__":
-    policy_path = "onnx/hector_wbc_s2.onnx"
+    policy_path = "onnx/hector_wbc_s2_lows_0819_2.onnx"
     ctrl_dt = 0.02
-    action_scale = 0.22
+    action_scale = 0.60
 
     controller = HectorController(
         policy_path=policy_path, ctrl_dt=ctrl_dt, action_scale=action_scale
@@ -342,6 +360,7 @@ if __name__ == "__main__":
 
     # --- Define the key callback function in the main scope ---
     def on_press(key):
+        print(controller._twist_command)
         try:
             char = key.char
             if char == 'd':
@@ -350,6 +369,10 @@ if __name__ == "__main__":
                 controller.switch_state(ControlState.STANDING)
             elif char == 'p':
                 controller.switch_state(ControlState.POLICY)
+            elif char == 'w':
+                controller._twist_command[0] += 0.5
+            elif char == 'x':
+                controller._twist_command[0] -= 0.5
         except AttributeError:
             # This handles special keys (e.g., Shift, Ctrl) which don't have a 'char' attribute
             pass
