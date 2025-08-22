@@ -39,8 +39,8 @@ _CHN_LOW_COMMAND = "HECTOR_HW_LOW_CMD"
 # Robot Parameters
 _NUM_JOINTS = 18
 _DEFAULT_Q = np.array([
-    0.00, 0.00, 0.785, -1.57, 0.785,  # Left Front
-    0.00, 0.00, 0.785, -1.57, 0.785,  # Right Front
+    0.00, 0.00, 0.785, -1.57, 0.785 -0.3,  # Left Front #-0.4
+    0.00, 0.00, 0.785, -1.57, 0.785 -0.3,  # Right Front
     0.00, 0.785, 0.000, -1.57,        # Left Hind
     0.00, 0.785, 0.000, -1.57         # Right Hind
 ])
@@ -53,21 +53,21 @@ _STANDING_Q = np.array([
     0.00, 0.785, 0.000, -1.57
 ])
 _STANDING_KP = np.array([
-    50.0, 50.0, 50.0, 50.0, 6.0,
-    50.0, 50.0, 50.0, 50.0, 6.0,
-    5.0, 5.0, 5.0, 5.0,
-    5.0, 5.0, 5.0, 5.0
-])
+    35.0, 35.0, 35.0, 35.0, 32.0,
+    35.0, 35.0, 35.0, 35.0, 32.0,
+    3.0, 3.0, 3.0, 3.0,
+    3.0, 3.0, 3.0, 3.0
+ ]) * 1.5
 _STANDING_KD = np.array([
-    0.75, 0.75, 0.75, 0.75, 0.15,
-    0.75, 0.75, 0.75, 0.75, 0.15,
+    0.75, 0.75, 0.75, 0.75, 0.65,
+    0.75, 0.75, 0.75, 0.75, 0.65,
     0.1, 0.1, 0.1, 0.1,
     0.1, 0.1, 0.1, 0.1
-])
+]) * 5
 
 # Policy Gains
-_POLICY_KP = _STANDING_KP * 1.1
-_POLICY_KD = _STANDING_KD * 2.0
+_POLICY_KP = _STANDING_KP 
+_POLICY_KD = _STANDING_KD 
 
 _INTERPOLATION_DURATION = 2.0
 
@@ -112,7 +112,7 @@ class HectorController:
 
         # --- NEW: Central dictionary for target gains ---
         self._TARGET_GAINS = {
-            ControlState.DAMPING: (np.zeros(_NUM_JOINTS), np.full(_NUM_JOINTS, 3.0)),
+            ControlState.DAMPING: (np.full(_NUM_JOINTS, 3.0), np.full(_NUM_JOINTS, 5.0)),
             ControlState.STANDING: (_STANDING_KP, _STANDING_KD),
             ControlState.POLICY: (_POLICY_KP, _POLICY_KD),
         }
@@ -161,7 +161,7 @@ class HectorController:
         self._phase_dt = 2 * np.pi * self._gait_freq * self._ctrl_dt
 
         # User commands
-        self._twist_command = np.array([1.0, 0.0, 0.0])
+        self._twist_command = np.array([0.0, 0.0, 0.0])
         self._body_command = np.zeros(12)
         self._body_command[0] = 0.55
         
@@ -208,14 +208,11 @@ class HectorController:
         phase = np.concatenate([np.cos(self._phase), np.sin(self._phase)])
         command = np.hstack([self._twist_command, self._body_command])
         
-        # why phase is not updating?
-        print(self._phase)
-        
         # Low-pass filter some hw obs
         gyro_f = 0.0*self._gyro_last + 1.0*self.imu.gyro
         acc_f = 0.0*self._acc_last + 1.0*self.imu.acc
         q_f = 0.0*self._q_last + 1.0*self.joint_state.q
-        dq_f = 0.5*self._dq_last + 0.5*self.joint_state.dq
+        dq_f = 0.7*self._dq_last + 0.3*self.joint_state.dq
 
         obs_n = np.hstack([
             gyro_f,
@@ -295,7 +292,7 @@ class HectorController:
             onnx_input = {"obs": obs.reshape(1, -1)}
             action = self._policy.run(self._output_names, onnx_input)[0][0]
             # Low pass filter for action
-            action_f = 0.2*self._last_action + 0.8*action
+            action_f = 0.5*self._last_action + 0.5*action
             self._last_action = action.copy()
             
             self.joint_cmd.q_des = action_f * self._action_scale + _DEFAULT_Q   
@@ -346,16 +343,16 @@ def visualizer_thread_func(controller, model, data):
 
 
 if __name__ == "__main__":
-    policy_path = "onnx/hector_wbc_s2_lows_0819_2.onnx"
+    policy_path = "onnx/kp35/hector_wbc_s2_0820_3.onnx"
     ctrl_dt = 0.02
-    action_scale = 0.60
+    action_scale = 0.55
 
     controller = HectorController(
         policy_path=policy_path, ctrl_dt=ctrl_dt, action_scale=action_scale
     )
 
-    lcm_loop = loop_func(name="lcm_handle", period=0.001, cb=controller.lcm_handle_loop)
-    cmd_loop = loop_func(name="lcm_command", period=0.001, cb=controller.send_command)
+    lcm_loop = loop_func(name="lcm_handle", period=0.0005, cb=controller.lcm_handle_loop)
+    cmd_loop = loop_func(name="lcm_command", period=0.0005, cb=controller.send_command)
     control_loop = loop_func(name="main_control", period=ctrl_dt, cb=controller.run_control_tick)
 
     # --- Define the key callback function in the main scope ---
