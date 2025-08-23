@@ -23,15 +23,15 @@ link_directories(include/Custom_SDK/lib)
 #include_directories(${realsense_INCLUDE_DIR})
 
 find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS})
+
+include_directories(${SDL2_INCLUDE_DIRS} "include/onnx")
+link_directories("include/onnx/lib")
 
 #set(DEPENDENCIES realsense2 SDL2)
 set(DEPENDENCIES SDL2)
 
 set(EXTRA_LIBS -pthread libunitree_legged_sdk_amd64.so lcm libCustomCommunication.so libprotobuf-nanopb.so)
-
 set(CMAKE_CXX_FLAGS "-O3")
-
 
 file(GLOB_RECURSE sources "include/*/*.h" "include/*/*.hpp" "src/*/*.cpp" "include/*/*/*.h")
 
@@ -39,7 +39,10 @@ file(GLOB_RECURSE sources "include/*/*.h" "include/*/*.hpp" "src/*/*.cpp" "inclu
 #target_link_libraries(src ${EXTRA_LIBS} ${DEPENDENCIES})
 
 add_library(src ${sources})
-target_link_libraries(src ${EXTRA_LIBS} ${DEPENDENCIES})
+target_link_libraries(src ${EXTRA_LIBS} ${DEPENDENCIES} onnxruntime)
 
-add_executable(biped_ctrl src/main.cpp)
-target_link_libraries(biped_ctrl ${EXTRA_LIBS} ${DEPENDENCIES} src)
+add_executable(layered_ctrl src/layered_ctrl.cpp)
+target_link_libraries(layered_ctrl ${EXTRA_LIBS} ${DEPENDENCIES} src onnxruntime)
+
+add_executable(uni_ctrl src/uni_ctrl.cpp)
+target_link_libraries(uni_ctrl ${EXTRA_LIBS} ${DEPENDENCIES} src onnxruntime)

@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/ps/Documents/hector_sim2real/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

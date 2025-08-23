@@ -7,6 +7,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/src.dir/src/interface/KeyBoard.cpp.o.d"
   "CMakeFiles/src.dir/src/interface/WirelessHandle.cpp.o"
   "CMakeFiles/src.dir/src/interface/WirelessHandle.cpp.o.d"
+  "CMakeFiles/src.dir/src/interface/hw_wrapper.cpp.o"
+  "CMakeFiles/src.dir/src/interface/hw_wrapper.cpp.o.d"
   "libsrc.a"
   "libsrc.pdb"
 )
