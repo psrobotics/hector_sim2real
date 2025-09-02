@@ -6,6 +6,7 @@
 #include <csignal>
 #include <sched.h>
 #include <map>
+#include <algorithm>
 
 #include <lcm/lcm-cpp.hpp>
 #include "../Custom_SDK/include/low_cmd_t.hpp"
@@ -17,34 +18,29 @@
 
 // --- Constants and Configuration ---
 constexpr int NUM_JOINTS = 18;
-constexpr int OBS_DIM = 82;
+constexpr int OBS_DIM = 67;
 const double INTERPOLATION_DURATION = 2.0;
 
 // Use inline variables for C++17 to define vectors in a header
 inline const Eigen::VectorXd DEFAULT_Q = (Eigen::VectorXd(NUM_JOINTS) 
-                                       << 0.00, 0.00, 0.785, -1.57, 0.785 - 0.55,
-                                          0.00, 0.00, 0.785, -1.57, 0.785 - 0.55,
+                                       << 0.00, 0.00, 0.785, -1.57, 0.785,
+                                          0.00, 0.00, 0.785, -1.57, 0.785, //0.55
                                           0.00, 0.785, 0.000, -1.57,
                                           0.00, 0.785, 0.000, -1.57)
                                              .finished();
 
-inline const Eigen::VectorXd STANDING_Q = (Eigen::VectorXd(NUM_JOINTS) 
-                                        << 0.00, 0.05, 0.785, -1.57, 0.785 - 0.15,
-                                           0.00, -0.05, 0.785, -1.57, 0.785 - 0.15,
-                                           0.00, 0.785, 0.000, -1.57,
-                                           0.00, 0.785, 0.000, -1.57)
-                                              .finished();
+inline const Eigen::VectorXd STANDING_Q = DEFAULT_Q;
 
-inline const Eigen::VectorXd STANDING_KP = (Eigen::VectorXd(NUM_JOINTS) 
-                                         << 35.0, 35.0, 35.0, 35.0, 35.0,
-                                            35.0, 35.0, 35.0, 35.0, 35.0,
+inline const Eigen::VectorXd STANDING_KP = 1.0 * (Eigen::VectorXd(NUM_JOINTS) 
+                                         << 35.0, 50.0, 50.0, 35.0, 35.0,
+                                            35.0, 50.0, 50.0, 35.0, 35.0,
                                             3.0, 3.0, 3.0, 3.0,
                                             3.0, 3.0, 3.0, 3.0)
                                                .finished();
 
-inline const Eigen::VectorXd STANDING_KD = 2 * (Eigen::VectorXd(NUM_JOINTS) 
-                                             << 0.75, 0.75, 0.75, 0.75, 0.75,
-                                                0.75, 0.75, 0.75, 0.75, 0.75,
+inline const Eigen::VectorXd STANDING_KD = 0.05 * (Eigen::VectorXd(NUM_JOINTS) 
+                                             << 0.75, 1.2, 1.2, 0.75, 0.75,
+                                                0.75, 1.2, 1.2, 0.75, 0.75,
                                                 0.1, 0.1, 0.1, 0.1,
                                                 0.1, 0.1, 0.1, 0.1)
                                                    .finished();
@@ -70,6 +66,8 @@ public:
     void ctrl_loop();
 
     void hw_ik(); // convert mujoco cmd to motor cmd with leg ik
+    void hw_ik_dir_only();
+    void hw_ik_shaping();
     void hw_fk(); // convert motor state to mujoco state with leg fk
 
     Eigen::VectorXf get_obs();
@@ -111,11 +109,11 @@ public:
 
     // Observation history & gait
     Eigen::VectorXf last_action;
-    Eigen::VectorXf last_obs_1, last_obs_2, last_obs_3;
+    Eigen::VectorXf last_obs_1, last_obs_2, last_obs_3, last_obs_4, last_obs_5;
     Eigen::Vector2d phase;
 
-    double gait_freq = 1.4;
-    double action_scale = 0.53;
+    double gait_freq = 1.8;
+    double action_scale = 0.5;
     double ctrl_dt = 0.02;
     double phase_dt;
 

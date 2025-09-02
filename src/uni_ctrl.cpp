@@ -65,6 +65,12 @@ void keyboard_input_loop(hw_wrapper *wrapper)
         case 'p':
             wrapper->switch_state(ControlState::POLICY);
             break;
+        case 'w':
+            wrapper->twist_command[0] += 0.5;
+            break;
+        case 'x':
+            wrapper->twist_command[0] -= 0.5;
+            break;
         }
     }
 }

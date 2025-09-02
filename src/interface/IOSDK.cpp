@@ -12,7 +12,7 @@ static int count;
 IOSDK::IOSDK(LeggedType robot, int cmd_panel_id) : _control(robot),
                                                    _udp(LOWLEVEL),
                                                    customcommunication(8070),
-                                                   imu_filter(1000.0f, 0.05f)
+                                                   imu_filter(1000.0f, 1.0f)
 {
     std::cout << "The control interface for real robot" << std::endl;
     _udp.InitCmdData(_lowCmd);
