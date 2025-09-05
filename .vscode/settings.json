@@ -67,6 +67,9 @@
         "core": "cpp",
         "codecvt": "cpp",
         "unordered_set": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "dense": "cpp",
+        "forward_list": "cpp",
+        "cfenv": "cpp"
     }
 }

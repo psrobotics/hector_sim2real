@@ -13,6 +13,7 @@
 #include "../Custom_SDK/include/low_state_t.hpp"
 
 #include "IOSDK.h"
+#include "t265.hpp"
 
 #include <onnxruntime_cxx_api.h>
 
@@ -32,15 +33,15 @@ inline const Eigen::VectorXd DEFAULT_Q = (Eigen::VectorXd(NUM_JOINTS)
 inline const Eigen::VectorXd STANDING_Q = DEFAULT_Q;
 
 inline const Eigen::VectorXd STANDING_KP = 1.0 * (Eigen::VectorXd(NUM_JOINTS) 
-                                         << 35.0, 50.0, 50.0, 35.0, 35.0,
-                                            35.0, 50.0, 50.0, 35.0, 35.0,
+                                         << 35.0, 70.0, 50.0, 37.0, 35.0,
+                                            35.0, 70.0, 50.0, 37.0, 35.0,
                                             3.0, 3.0, 3.0, 3.0,
                                             3.0, 3.0, 3.0, 3.0)
                                                .finished();
 
-inline const Eigen::VectorXd STANDING_KD = 0.05 * (Eigen::VectorXd(NUM_JOINTS) 
-                                             << 0.75, 1.2, 1.2, 0.75, 0.75,
-                                                0.75, 1.2, 1.2, 0.75, 0.75,
+inline const Eigen::VectorXd STANDING_KD = 0.1 * (Eigen::VectorXd(NUM_JOINTS) 
+                                             << 1.2, 1.2, 1.2, 0.75, 0.75,
+                                                1.2, 1.2, 1.2, 0.75, 0.75,
                                                 0.1, 0.1, 0.1, 0.1,
                                                 0.1, 0.1, 0.1, 0.1)
                                                    .finished();
@@ -59,7 +60,7 @@ enum class ControlState
 class hw_wrapper
 {
 public:
-    hw_wrapper();
+    hw_wrapper();//(t265_wrapper *_t265);
     ~hw_wrapper();
     void hw_send();
     void hw_recv();
@@ -129,6 +130,8 @@ public:
     Eigen::VectorXd dq_n = Eigen::VectorXd::Zero(NUM_JOINTS);
     Eigen::VectorXd q_last = Eigen::VectorXd::Zero(NUM_JOINTS);
     Eigen::VectorXd dq_last = Eigen::VectorXd::Zero(NUM_JOINTS);
+
+    t265_wrapper *t265;
 
 private:
     // HW related params

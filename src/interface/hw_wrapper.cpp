@@ -1,11 +1,12 @@
 #include "../../include/interface/hw_wrapper.hpp"
 
-hw_wrapper::hw_wrapper()
+hw_wrapper::hw_wrapper()//(t265_wrapper *_t265)
     : ort_env(ORT_LOGGING_LEVEL_WARNING, "hector_policy"),
       ort_session(ort_env, "../src/onnx/joystick/joystick_s2_0830_1.onnx", Ort::SessionOptions{nullptr}),
       memory_info(Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault)),
       kp_start(NUM_JOINTS),
       kd_start(NUM_JOINTS)
+      //t265(_t265)
 {
     // Init buffers
     low_cmd = new LowlevelCmd();
@@ -43,6 +44,10 @@ hw_wrapper::hw_wrapper()
     last_obs_3.setZero(OBS_DIM);
     last_obs_4.setZero(OBS_DIM);
     last_obs_5.setZero(OBS_DIM);
+
+    // Init t265
+    //t265->start();
+    std::cout << "T265 start running" << std::endl;
 
     std::cout << "Starting in DAMPING state." << std::endl;
 
@@ -137,19 +142,31 @@ void hw_wrapper::update_gains()
 Eigen::VectorXf hw_wrapper::get_obs()
 {
     // IMU and acc
+    // Update t265
+    //t265->wait_and_update();
     auto rpy = policy_state->imu.rpy;
+    //auto t265_rpy = t265->euler_xyz();
+    
     Eigen::AngleAxisd roll_t(rpy[0], Eigen::Vector3d::UnitX());
-    Eigen::AngleAxisd pitch_t(rpy[1]-0.05, Eigen::Vector3d::UnitY());
+    Eigen::AngleAxisd pitch_t(rpy[1]-0.12, Eigen::Vector3d::UnitY());
     Eigen::AngleAxisd yaw_t(rpy[2], Eigen::Vector3d::UnitZ());
     Eigen::Quaterniond q = yaw_t * pitch_t * roll_t;
     Eigen::Matrix3d imu_xmat = q.matrix();
     Eigen::Vector3d gravity_vec = imu_xmat.transpose() * Eigen::Vector3d(0, 0, -1);
+    
+    /*
+    auto t265_q = t265->quaternion_wxyz();
+    Eigen::Quaterniond qq(t265_q->w(), t265_q->x(), t265_q->y(), t265_q->z());
+    Eigen::Matrix3d imu_xmat = qq.matrix();
+    Eigen::Vector3d gravity_vec = imu_xmat.transpose() * Eigen::Vector3d(0, 0, -1);
+    */
 
     Eigen::Vector4d phase_obs;
     phase_obs << cos(phase(0)), cos(phase(1)), sin(phase(0)), sin(phase(1));
 
     // Simple low-pass filters
     Eigen::Vector3d gyro, acc;
+    
     for (int i = 0; i < 3; i++)
     {
         gyro(i) = policy_state->imu.gyroscope[i];
@@ -157,6 +174,15 @@ Eigen::VectorXf hw_wrapper::get_obs()
     }
     Eigen::Vector3d gyro_f = 0.0 * gyro_last + 1.0 * gyro;
     Eigen::Vector3d acc_f = 0.0 * acc_last + 1.0 * acc;
+    
+    
+    // use t265
+    /*
+    Eigen::Vector3d gyro_f, acc_f;
+    auto t265_gyro = t265->gyro_xyz();
+    gyro_f = t265_gyro->transpose();
+    gyro_f = t265_gyro->transpose();
+    */
 
     // Copy over q, dq
     for (int i = 0; i < NUM_JOINTS; i++)

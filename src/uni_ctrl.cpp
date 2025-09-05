@@ -14,6 +14,7 @@
 #include "../include/Custom_SDK/include/low_state_t.hpp"
 
 #include "../include/interface/hw_wrapper.hpp"
+#include "../include/interface/t265.hpp"
 
 using namespace UNITREE_LEGGED_SDK;
 
@@ -84,6 +85,8 @@ int main()
 
     int robot_id = 4;     // AlienGo=1, A1=2, Biped=4
     int cmd_panel_id = 2; // Wireless=1, keyboard=2
+
+    //t265_wrapper t265;
 
     std::cout << "Communication level is set to LOW-level." << std::endl
               << "WARNING: Make sure the robot is hung up." << std::endl

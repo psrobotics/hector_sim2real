@@ -11,12 +11,9 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/ps/Documents/hector_sim2real/src/layered_ctrl.cpp" "CMakeFiles/layered_ctrl.dir/src/layered_ctrl.cpp.o" "gcc" "CMakeFiles/layered_ctrl.dir/src/layered_ctrl.cpp.o.d"
   )
 
-# Targets to which this target links which contain Fortran sources.
-set(CMAKE_Fortran_TARGET_LINKED_INFO_FILES
-  )
-
-# Targets to which this target links which contain Fortran sources.
-set(CMAKE_Fortran_TARGET_FORWARD_LINKED_INFO_FILES
+# Targets to which this target links.
+set(CMAKE_TARGET_LINKED_INFO_FILES
+  "/home/ps/Documents/hector_sim2real/build/CMakeFiles/src.dir/DependInfo.cmake"
   )
 
 # Fortran module output directory.

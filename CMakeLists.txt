@@ -3,7 +3,7 @@ project(quadruped_control)
 
 include_directories(${CMAKE_BINARY_DIR})
 set(CMAKE_C_FLAGS "-O3 -ggdb -std=gnu99 -I -fPIC")
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 # set(CMAKE_CXX_FLAGS "-O3 -no-pie -ggdb -Wall")
 
@@ -23,6 +23,7 @@ link_directories(include/Custom_SDK/lib)
 #include_directories(${realsense_INCLUDE_DIR})
 
 find_package(SDL2 REQUIRED)
+find_package(realsense2 REQUIRED)
 
 include_directories(${SDL2_INCLUDE_DIRS} "include/onnx")
 link_directories("include/onnx/lib")
@@ -42,7 +43,10 @@ add_library(src ${sources})
 target_link_libraries(src ${EXTRA_LIBS} ${DEPENDENCIES} onnxruntime)
 
 add_executable(layered_ctrl src/layered_ctrl.cpp)
-target_link_libraries(layered_ctrl ${EXTRA_LIBS} ${DEPENDENCIES} src onnxruntime)
+target_link_libraries(layered_ctrl realsense2::realsense2 ${EXTRA_LIBS} ${DEPENDENCIES} src onnxruntime)
 
 add_executable(uni_ctrl src/uni_ctrl.cpp)
-target_link_libraries(uni_ctrl ${EXTRA_LIBS} ${DEPENDENCIES} src onnxruntime)
+target_link_libraries(uni_ctrl realsense2::realsense2 ${EXTRA_LIBS} ${DEPENDENCIES} src onnxruntime)
+
+add_executable(t265_test src/t265_test.cpp)
+target_link_libraries(t265_test realsense2::realsense2 ${EXTRA_LIBS} ${DEPENDENCIES} src)
