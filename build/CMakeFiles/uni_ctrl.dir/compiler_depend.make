@@ -756,17 +756,14 @@ CMakeFiles/uni_ctrl.dir/src/uni_ctrl.cpp.o: ../src/uni_ctrl.cpp \
   ../include/Custom_SDK/include/pb_encode.h \
   ../include/Custom_SDK/include/pb.h \
   ../include/Custom_SDK/include/pb_decode.h \
-  ../include/interface/Madgwick_class.hpp \
   ../include/interface/imu_ekf.hpp \
-  ../include/Custom_SDK/include/low_cmd_t.hpp \
-  /usr/local/include/lcm/lcm_coretypes.h \
-  ../include/Custom_SDK/include/low_state_t.hpp \
   ../include/interface/hw_wrapper.hpp \
   /usr/include/c++/11/map \
   /usr/include/c++/11/bits/stl_tree.h \
   /usr/include/c++/11/bits/stl_map.h \
   /usr/include/c++/11/bits/stl_multimap.h \
   ../include/Custom_SDK/include/low_cmd_t.hpp \
+  /usr/local/include/lcm/lcm_coretypes.h \
   ../include/Custom_SDK/include/low_state_t.hpp \
   ../include/interface/IOSDK.h \
   ../include/interface/t265.hpp \
@@ -819,7 +816,8 @@ CMakeFiles/uni_ctrl.dir/src/uni_ctrl.cpp.o: ../src/uni_ctrl.cpp \
   ../include/onnx/onnxruntime_c_api.h \
   ../include/onnx/onnxruntime_float16.h \
   /usr/include/c++/11/variant \
-  ../include/onnx/onnxruntime_cxx_inline.h
+  ../include/onnx/onnxruntime_cxx_inline.h \
+  ../include/Custom_SDK/include/twist_t.hpp
 
 
 ../include/onnx/onnxruntime_cxx_inline.h:
@@ -854,6 +852,8 @@ CMakeFiles/uni_ctrl.dir/src/uni_ctrl.cpp.o: ../src/uni_ctrl.cpp \
 
 /usr/local/include/librealsense2/rs.hpp:
 
+../include/Custom_SDK/include/low_state_t.hpp:
+
 /usr/include/c++/11/bits/stl_multimap.h:
 
 /usr/include/c++/11/bits/stl_tree.h:
@@ -861,8 +861,6 @@ CMakeFiles/uni_ctrl.dir/src/uni_ctrl.cpp.o: ../src/uni_ctrl.cpp \
 /usr/include/c++/11/map:
 
 ../include/interface/hw_wrapper.hpp:
-
-../include/Custom_SDK/include/low_state_t.hpp:
 
 ../include/interface/imu_ekf.hpp:
 
@@ -1924,6 +1922,8 @@ CMakeFiles/uni_ctrl.dir/src/uni_ctrl.cpp.o: ../src/uni_ctrl.cpp \
 
 ../include/interface/IOSDK.h:
 
+../include/Custom_SDK/include/twist_t.hpp:
+
 ../include/interface/IOInterface.h:
 
 /usr/local/include/librealsense2/h/rs_pipeline.h:
@@ -2113,8 +2113,6 @@ CMakeFiles/uni_ctrl.dir/src/uni_ctrl.cpp.o: ../src/uni_ctrl.cpp \
 /usr/include/eigen3/Eigen/src/Core/functors/UnaryFunctors.h:
 
 /usr/local/include/lcm/lcm_coretypes.h:
-
-../include/interface/Madgwick_class.hpp:
 
 /usr/include/boost/type_traits/integral_constant.hpp:
 

@@ -1,7 +1,7 @@
 import pygame
 
 import lcm
-from lcm_t.exlcm import twist_t
+from exlcm import twist_t
 import time
 
 import numpy as np
@@ -13,7 +13,7 @@ vel_global = np.array((0.0, 0.0, 0.0))
 lock = threading.Lock()
 
 def send_data():
-    interval = 1 / 22 # 22hz
+    interval = 1 / 50 # 50hz
     x_v = 0
     y_v = 0
     ang_v = 0
@@ -63,8 +63,8 @@ bar_spacing = 20
 base_y = height - 10
 
 # Velocity magnitude
-linear_vv = 1.5
-angular_vv = 1.5
+linear_vv = 1.0
+angular_vv = 1.0
 
 clock = pygame.time.Clock()
 

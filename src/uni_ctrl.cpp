@@ -10,11 +10,10 @@
 
 #include <lcm/lcm-cpp.hpp>
 #include "../include/interface/IOSDK.h"
-#include "../include/Custom_SDK/include/low_cmd_t.hpp"
-#include "../include/Custom_SDK/include/low_state_t.hpp"
 
 #include "../include/interface/hw_wrapper.hpp"
 #include "../include/interface/t265.hpp"
+#include "../include/Custom_SDK/include/twist_t.hpp"
 
 using namespace UNITREE_LEGGED_SDK;
 
@@ -66,14 +65,39 @@ void keyboard_input_loop(hw_wrapper *wrapper)
         case 'p':
             wrapper->switch_state(ControlState::POLICY);
             break;
-        case 'w':
-            wrapper->twist_command[0] += 0.5;
-            break;
-        case 'x':
-            wrapper->twist_command[0] -= 0.5;
-            break;
         }
     }
+}
+
+class Handler 
+{
+    public:
+        hw_wrapper *wrapper;
+        Handler (hw_wrapper *_wrapper)
+        {
+            wrapper = _wrapper;
+        }
+        ~Handler() {}
+        void handleMessage(const lcm::ReceiveBuffer* rbuf,
+                           const std::string& chan, 
+                           const exlcm::twist_t* msg)
+        {
+            int i;
+            printf("Received message on channel \"%s\":\n", chan.c_str());
+            printf("command    = (%f, %f, %f)\n",
+                msg->x_vel[0], msg->y_vel[0], msg->omega_vel[0]);
+            
+            wrapper->twist_command[0] = msg->x_vel[0]*0.4;
+            wrapper->twist_command[1] = msg->y_vel[0]*0.2;
+            wrapper->twist_command[2] = msg->omega_vel[0]*0.4;
+        
+        }
+};
+
+void lcm_recv(lcm::LCM *lcm)
+{
+    lcm->handle();
+    std::cout << "Recv mujoco cmd" << std::endl;
 }
 
 int main()
@@ -97,17 +121,25 @@ int main()
     hw_wrapper wrapper{};
     wrapper.state = ControlState::DAMPING;
 
+    Handler handlerObject(&wrapper);
+    lcm::LCM lcm;
+    if(!lcm.good())
+        return 1;
+    lcm.subscribe("TWIST_T", &Handler::handleMessage, &handlerObject);
+
     LoopFunc loop_uni("uni_control_loop", lowlevel_dt, boost::bind(&hw_wrapper::uni_ctrl_loop, &wrapper));
     //LoopFunc loop_ctrl("control_loop", ctrl_dt, boost::bind(&hw_wrapper::ctrl_loop, &wrapper));
     //LoopFunc loop_hw_send("udp_send", lowlevel_dt, boost::bind(&hw_wrapper::hw_send, &wrapper));
     //LoopFunc loop_hw_recv("udp_recv", lowlevel_dt, boost::bind(&hw_wrapper::hw_recv, &wrapper));
     LoopFunc keyboard("keyboard", ctrl_dt, boost::bind(&keyboard_input_loop, &wrapper));
+    LoopFunc joystick("joystick", ctrl_dt, boost::bind(&lcm_recv, &lcm));
 
     loop_uni.start();
     //loop_hw_send.start();
     //loop_hw_recv.start();
     //loop_ctrl.start();
     keyboard.start();
+    joystick.start();
 
     while (true)
     {

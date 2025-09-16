@@ -744,7 +744,6 @@ CMakeFiles/layered_ctrl.dir/src/layered_ctrl.cpp.o: ../src/layered_ctrl.cpp \
   ../include/Custom_SDK/include/pb_encode.h \
   ../include/Custom_SDK/include/pb.h \
   ../include/Custom_SDK/include/pb_decode.h \
-  ../include/interface/Madgwick_class.hpp \
   ../include/interface/imu_ekf.hpp \
   ../include/Custom_SDK/include/low_cmd_t.hpp \
   /usr/local/include/lcm/lcm_coretypes.h \
@@ -1908,8 +1907,6 @@ CMakeFiles/layered_ctrl.dir/src/layered_ctrl.cpp.o: ../src/layered_ctrl.cpp \
 /usr/include/eigen3/Eigen/src/Core/functors/UnaryFunctors.h:
 
 /usr/local/include/lcm/lcm_coretypes.h:
-
-../include/interface/Madgwick_class.hpp:
 
 /usr/include/boost/type_traits/integral_constant.hpp:
 

@@ -721,7 +721,6 @@ CMakeFiles/src.dir/src/interface/IOSDK.cpp.o: ../src/interface/IOSDK.cpp \
   ../include/Custom_SDK/include/pb_encode.h \
   ../include/Custom_SDK/include/pb.h \
   ../include/Custom_SDK/include/pb_decode.h \
-  ../include/interface/Madgwick_class.hpp \
   ../include/interface/imu_ekf.hpp \
   ../include/interface/WirelessHandle.h \
   ../include/sdk/include/comm.h \
@@ -3243,7 +3242,6 @@ CMakeFiles/src.dir/src/interface/hw_wrapper.cpp.o: ../src/interface/hw_wrapper.c
   ../include/Custom_SDK/include/pb_encode.h \
   ../include/Custom_SDK/include/pb.h \
   ../include/Custom_SDK/include/pb_decode.h \
-  ../include/interface/Madgwick_class.hpp \
   ../include/interface/imu_ekf.hpp \
   ../include/interface/t265.hpp \
   /usr/local/include/librealsense2/rs.hpp \
@@ -4701,8 +4699,6 @@ CMakeFiles/src.dir/src/interface/hw_wrapper.cpp.o: ../src/interface/hw_wrapper.c
 /usr/lib/gcc/x86_64-linux-gnu/11/include/uintrintrin.h:
 
 ../include/interface/KeyBoard.h:
-
-../include/interface/Madgwick_class.hpp:
 
 /usr/include/boost/type_traits/integral_constant.hpp:
 
