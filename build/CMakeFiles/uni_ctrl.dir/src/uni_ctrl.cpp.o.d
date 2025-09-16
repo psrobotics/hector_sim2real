@@ -673,7 +673,7 @@ CMakeFiles/uni_ctrl.dir/src/uni_ctrl.cpp.o: \
  /home/ps/Documents/hector_sim2real/src/../include/interface/../Custom_SDK/include/pb_encode.h \
  /home/ps/Documents/hector_sim2real/src/../include/interface/../Custom_SDK/include/pb.h \
  /home/ps/Documents/hector_sim2real/src/../include/interface/../Custom_SDK/include/pb_decode.h \
- /home/ps/Documents/hector_sim2real/src/../include/interface/Madgwick_class.hpp \
+ /home/ps/Documents/hector_sim2real/src/../include/interface/imu_ekf.hpp \
  /home/ps/Documents/hector_sim2real/src/../include/Custom_SDK/include/low_cmd_t.hpp \
  /usr/local/include/lcm/lcm_coretypes.h \
  /home/ps/Documents/hector_sim2real/src/../include/Custom_SDK/include/low_state_t.hpp \

@@ -4,5 +4,4 @@ DO NOT MODIFY BY HAND!!!!
 lcm-gen 1.5.1
 """
 
-from .low_cmd_t import low_cmd_t as low_cmd_t
-from .low_state_t import low_state_t as low_state_t
+from .twist_t import twist_t as twist_t

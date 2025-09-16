@@ -97,14 +97,16 @@ int main()
     hw_wrapper wrapper{};
     wrapper.state = ControlState::DAMPING;
 
-    LoopFunc loop_ctrl("control_loop", ctrl_dt, boost::bind(&hw_wrapper::ctrl_loop, &wrapper));
-    LoopFunc loop_hw_send("udp_send", lowlevel_dt, boost::bind(&hw_wrapper::hw_send, &wrapper));
-    LoopFunc loop_hw_recv("udp_recv", lowlevel_dt, boost::bind(&hw_wrapper::hw_recv, &wrapper));
+    LoopFunc loop_uni("uni_control_loop", lowlevel_dt, boost::bind(&hw_wrapper::uni_ctrl_loop, &wrapper));
+    //LoopFunc loop_ctrl("control_loop", ctrl_dt, boost::bind(&hw_wrapper::ctrl_loop, &wrapper));
+    //LoopFunc loop_hw_send("udp_send", lowlevel_dt, boost::bind(&hw_wrapper::hw_send, &wrapper));
+    //LoopFunc loop_hw_recv("udp_recv", lowlevel_dt, boost::bind(&hw_wrapper::hw_recv, &wrapper));
     LoopFunc keyboard("keyboard", ctrl_dt, boost::bind(&keyboard_input_loop, &wrapper));
 
-    loop_hw_send.start();
-    loop_hw_recv.start();
-    loop_ctrl.start();
+    loop_uni.start();
+    //loop_hw_send.start();
+    //loop_hw_recv.start();
+    //loop_ctrl.start();
     keyboard.start();
 
     while (true)

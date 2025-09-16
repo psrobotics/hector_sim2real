@@ -2,7 +2,7 @@
 
 hw_wrapper::hw_wrapper()//(t265_wrapper *_t265)
     : ort_env(ORT_LOGGING_LEVEL_WARNING, "hector_policy"),
-      ort_session(ort_env, "../src/onnx/joystick/joystick_s2_0830_1.onnx", Ort::SessionOptions{nullptr}),
+      ort_session(ort_env, "../src/onnx/joystick/joystick_s1_h10_3.onnx", Ort::SessionOptions{nullptr}),
       memory_info(Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault)),
       kp_start(NUM_JOINTS),
       kd_start(NUM_JOINTS)
@@ -39,15 +39,11 @@ hw_wrapper::hw_wrapper()//(t265_wrapper *_t265)
 
     // Observation buffers
     last_action.setZero(NUM_JOINTS);
-    last_obs_1.setZero(OBS_DIM);
-    last_obs_2.setZero(OBS_DIM);
-    last_obs_3.setZero(OBS_DIM);
-    last_obs_4.setZero(OBS_DIM);
-    last_obs_5.setZero(OBS_DIM);
+    obs_buffer.setZero(OBS_DIM*OBS_HIST);
 
     // Init t265
     //t265->start();
-    std::cout << "T265 start running" << std::endl;
+    //std::cout << "T265 start running" << std::endl;
 
     std::cout << "Starting in DAMPING state." << std::endl;
 
@@ -148,7 +144,7 @@ Eigen::VectorXf hw_wrapper::get_obs()
     //auto t265_rpy = t265->euler_xyz();
     
     Eigen::AngleAxisd roll_t(rpy[0], Eigen::Vector3d::UnitX());
-    Eigen::AngleAxisd pitch_t(rpy[1]-0.12, Eigen::Vector3d::UnitY());
+    Eigen::AngleAxisd pitch_t(rpy[1], Eigen::Vector3d::UnitY()); //-0.12
     Eigen::AngleAxisd yaw_t(rpy[2], Eigen::Vector3d::UnitZ());
     Eigen::Quaterniond q = yaw_t * pitch_t * roll_t;
     Eigen::Matrix3d imu_xmat = q.matrix();
@@ -174,7 +170,6 @@ Eigen::VectorXf hw_wrapper::get_obs()
     }
     Eigen::Vector3d gyro_f = 0.0 * gyro_last + 1.0 * gyro;
     Eigen::Vector3d acc_f = 0.0 * acc_last + 1.0 * acc;
-    
     
     // use t265
     /*
@@ -205,14 +200,12 @@ Eigen::VectorXf hw_wrapper::get_obs()
         twist_command.cast<float>();     // 3
         //body_command.cast<float>();      // 12
 
+    std::cout<<"obs - "<<std::endl;
+    std::cout<<obs_n<<std::endl;
+
     // Take in past 3 history obs
-    Eigen::VectorXf obs_full(obs_n.size() * 6);
-    obs_full << obs_n,
-                last_obs_1,
-                last_obs_2,
-                last_obs_3,
-                last_obs_4,
-                last_obs_5;
+    Eigen::VectorXf obs_full(obs_n.size()*(OBS_HIST+1));
+    obs_full << obs_n, obs_buffer;
 
     // Update buffers
     gyro_last = gyro;
@@ -220,13 +213,30 @@ Eigen::VectorXf hw_wrapper::get_obs()
     q_last = q_n;
     dq_last = dq_n;
 
-    last_obs_5 = last_obs_4;
-    last_obs_4 = last_obs_3;
-    last_obs_3 = last_obs_2;
-    last_obs_2 = last_obs_1;
-    last_obs_1 = obs_n;
+    // Update obs hist
+    auto obs_buffer_copy = obs_buffer;
+    for(int i=OBS_DIM; i<OBS_DIM*OBS_HIST; i++)
+        obs_buffer[i] = obs_buffer_copy[i-OBS_DIM];
+    for(int i=0; i<OBS_DIM; i++)
+        obs_buffer[i] = obs_n[i];
 
     return obs_full;
+}
+
+void hw_wrapper::uni_ctrl_loop()
+{
+    // This runs 1khz
+    _counter+=1;
+    //std::cout<<_counter<<std::endl;
+    // Send first then recv
+    hw_send();
+    hw_recv();
+
+    // This runs 50hz
+    if(_counter % _sub_count == 0)
+    {
+        ctrl_loop();
+    }
 }
 
 // Test control loop to interact with hw
@@ -279,7 +289,7 @@ void hw_wrapper::ctrl_loop()
         Eigen::Map<Eigen::VectorXf> action(action_ptr, NUM_JOINTS);
 
         // Low pass filter for action
-        Eigen::VectorXf action_f = 0.4 * last_action + 0.6 * action;
+        Eigen::VectorXf action_f = 0.0 * last_action + 1.0 * action;
         // Update action buffer
         last_action = action;
         Eigen::VectorXf q_tar_n = action_f * static_cast<float>(action_scale) + DEFAULT_Q.cast<float>();
@@ -447,10 +457,11 @@ void hw_wrapper::hw_ik_shaping()
         const Eigen::Vector2d m_des = A*q_des + b;
 
         // 4) Joint-space PD gains you want to realize (diagonal in joint space)
-        const double kp_k = policy_cmd->motorCmd[i3].Kp;
-        const double kd_k = policy_cmd->motorCmd[i3].Kd;
-        const double kp_a = policy_cmd->motorCmd[i4].Kp;
-        const double kd_a = policy_cmd->motorCmd[i4].Kd;
+        // This aligns with policy
+        const double kp_k = 35.0;//policy_cmd->motorCmd[i3].Kp;
+        const double kd_k = 0.75;//policy_cmd->motorCmd[i3].Kd;
+        const double kp_a = 35.0;//policy_cmd->motorCmd[i4].Kp;
+        const double kd_a = 0.75;//policy_cmd->motorCmd[i4].Kd;
 
         // Equivalent MOTOR-space PD (matrix) that matches joint PD:
         // Kp_m_eq = A^{-T} diag(kp_k, kp_a) A^{-1}, same for Kd
