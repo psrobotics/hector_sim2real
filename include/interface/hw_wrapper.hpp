@@ -34,15 +34,15 @@ inline const Eigen::VectorXd DEFAULT_Q = (Eigen::VectorXd(NUM_JOINTS)
 inline const Eigen::VectorXd STANDING_Q = DEFAULT_Q;
 
 inline const Eigen::VectorXd STANDING_KP = 1.0 * (Eigen::VectorXd(NUM_JOINTS) 
-                                         << 25.0, 35.0, 35.0, 35.0, 30.0,
-                                            25.0, 35.0, 35.0, 35.0, 30.0,
+                                         << 35.0, 35.0, 35.0, 35.0, 35.0,
+                                            35.0, 35.0, 35.0, 35.0, 35.0,
                                             3.0, 3.0, 3.0, 3.0,
                                             3.0, 3.0, 3.0, 3.0)
                                                .finished(); // 60 40
 
-inline const Eigen::VectorXd STANDING_KD = 1.0 * (Eigen::VectorXd(NUM_JOINTS) 
-                                             << 2.0, 2.0, 1.5, 1.5, 1.0,
-                                                2.0, 2.0, 1.5, 1.5, 1.0,
+inline const Eigen::VectorXd STANDING_KD = 1.2 * (Eigen::VectorXd(NUM_JOINTS) 
+                                             << 1.0, 1.0, 1.0, 1.0, 1.0,
+                                                1.0, 1.0, 1.0, 1.0, 1.0,
                                                 0.1, 0.1, 0.1, 0.1,
                                                 0.1, 0.1, 0.1, 0.1)
                                                    .finished();
@@ -116,7 +116,7 @@ public:
     Eigen::Vector2d phase;
 
     double gait_freq = 1.8;
-    double action_scale = 0.55;
+    double action_scale = 0.5;
     double ctrl_dt = 0.02;
     double phase_dt;
     long _counter = 0;
