@@ -40,7 +40,7 @@ inline const Eigen::VectorXd STANDING_KP = 1.0 * (Eigen::VectorXd(NUM_JOINTS)
                                             3.0, 3.0, 3.0, 3.0)
                                                .finished(); // 60 40
 
-inline const Eigen::VectorXd STANDING_KD = 1.2 * (Eigen::VectorXd(NUM_JOINTS) 
+inline const Eigen::VectorXd STANDING_KD = 1.0 * (Eigen::VectorXd(NUM_JOINTS) 
                                              << 1.0, 1.0, 1.0, 1.0, 1.0,
                                                 1.0, 1.0, 1.0, 1.0, 1.0,
                                                 0.1, 0.1, 0.1, 0.1,

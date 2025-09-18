@@ -36,7 +36,7 @@ public:
 
         // Measurement noise covariance R: Uncertainty in the measurement (accelerometer).
         // Tunes how much you trust the accelerometer. Smaller values = more trust.
-        float R_angle = 1e-6f;
+        float R_angle = 5e-7f;
         R[0][0] = R_angle; R[0][1] = 0.0f;
         R[1][0] = 0.0f; R[1][1] = R_angle;
     }
